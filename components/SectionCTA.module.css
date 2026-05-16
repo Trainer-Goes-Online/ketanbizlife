@@ -1,0 +1,11 @@
+.wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-10);
+}
+
+@media (min-width: 768px) {
+  .wrap {
+    margin-top: var(--space-12);
+  }
+}

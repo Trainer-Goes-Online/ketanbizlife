@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 40" role="img" aria-label="Ketan BizLife">
+  <title>Ketan BizLife</title>
+  <style>
+    .wordmark {
+      font-family: "Fraunces", Georgia, "Times New Roman", serif;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+    }
+    .ketan { fill: #ffffff; }
+    .bizlife { fill: #2563EB; }
+    .accent-dot { fill: #2563EB; }
+  </style>
+  <text class="wordmark ketan" x="0" y="28">Ketan</text>
+  <text class="wordmark bizlife" x="66" y="28">BizLife</text>
+  <circle class="accent-dot" cx="143" cy="26" r="2.2" />
+</svg>

@@ -1,0 +1,39 @@
+.block {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  line-height: 1;
+}
+
+.center {
+  justify-content: center;
+}
+
+.left {
+  justify-content: flex-start;
+}
+
+.anchor {
+  font-family: var(--font-body);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+
+.actual {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw + 0.5rem, 3rem);
+  font-weight: var(--weight-bold);
+  color: var(--accent-gold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.suffix {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
