@@ -23,6 +23,23 @@ export function readUtmFromSearch(search: string): UtmPayload {
 }
 
 /**
+ * Read UTM params from a plain object (e.g. Next.js searchParams in a server
+ * component). Arrays (?utm_source=a&utm_source=b) take the first value.
+ */
+export function readUtmFromObject(
+  searchParams: Record<string, string | string[] | undefined> | undefined,
+): UtmPayload {
+  if (!searchParams) return {};
+  const out: UtmPayload = {};
+  for (const key of UTM_KEYS) {
+    const raw = searchParams[key];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (value) out[key] = value;
+  }
+  return out;
+}
+
+/**
  * Read UTM params from sessionStorage under the provided storage key.
  * Returns empty object if unset or invalid.
  */

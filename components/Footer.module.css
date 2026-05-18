@@ -1,49 +1,94 @@
 .footer {
-  padding-block: var(--space-16) var(--space-10);
-  background-color: var(--bg-base);
+  padding-block: var(--space-12) var(--space-6);
+  /* Bottom space for the sticky MobileCTABar so the disclaimer isn't covered.
+     Reset to var(--space-6) at >=1024px where the bar is hidden. */
+  padding-bottom: clamp(96px, 16vw, 120px);
+  background-color: var(--bg-deeper);
   border-top: 1px solid var(--border-subtle);
+  position: relative;
+}
+
+.footer::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--border-strong) 20%,
+    var(--border-strong) 80%,
+    transparent
+  );
 }
 
 .top {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-8);
-  padding-bottom: var(--space-10);
+  gap: var(--space-6);
+  padding-bottom: var(--space-6);
   border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .brand {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .tagline {
+  font-family: var(--font-display);
+  font-style: italic;
   font-size: var(--text-sm);
-  color: var(--text-muted);
-  letter-spacing: var(--tracking-wide);
+  color: var(--text-secondary);
+  letter-spacing: -0.005em;
+  max-width: 360px;
+  line-height: var(--leading-relaxed);
 }
 
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .link {
+  font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  transition: color var(--duration-fast) ease;
+  letter-spacing: 0.01em;
+  transition: color var(--duration-fast) var(--ease-out-strong);
+  padding-block: var(--space-1);
+  position: relative;
 }
 
-.link:hover {
-  color: var(--accent);
+.link::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background-color: var(--accent-hover);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-base) var(--ease-out-strong);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link:hover {
+    color: var(--text-primary);
+  }
+
+  .link:hover::after {
+    transform: scaleX(1);
+  }
 }
 
 .social {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .socialIcon {
@@ -52,18 +97,29 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background-color: var(--bg-card);
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   border-radius: var(--radius-full);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
   transition:
-    background-color var(--duration-fast) ease,
-    color var(--duration-fast) ease;
+    background-color var(--duration-fast) var(--ease-out-strong),
+    color var(--duration-fast) var(--ease-out-strong),
+    border-color var(--duration-fast) var(--ease-out-strong),
+    transform var(--duration-press) var(--ease-out-strong);
 }
 
-.socialIcon:hover {
-  background-color: var(--accent);
-  color: var(--text-on-accent);
+@media (hover: hover) and (pointer: fine) {
+  .socialIcon:hover {
+    background-color: var(--accent-soft);
+    color: var(--accent-hover);
+    border-color: var(--border-accent);
+  }
+}
+
+.socialIcon:active {
+  transform: scale(0.94);
 }
 
 .bottom {
@@ -73,8 +129,10 @@
 }
 
 .copyright {
+  font-family: var(--font-body);
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
 }
 
 .disclaimer {
@@ -88,5 +146,15 @@
   .top {
     grid-template-columns: 1fr auto auto;
     align-items: center;
+    gap: var(--space-10);
+    padding-bottom: var(--space-8);
+    margin-bottom: var(--space-8);
+  }
+}
+
+@media (min-width: 1024px) {
+  .footer {
+    /* Sticky CTA bar is hidden at this breakpoint — reset bottom padding. */
+    padding-bottom: var(--space-8);
   }
 }

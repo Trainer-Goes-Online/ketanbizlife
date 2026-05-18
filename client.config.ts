@@ -5,9 +5,68 @@
  * brand fields. Components are pure presentation and never contain hardcoded
  * client strings. To change a word on the site, edit this file.
  *
- * The 5 copy approval items from the brief are wired as toggles below — flip
- * them anytime without code changes.
+ * Prices, dates, and bump amounts are wired to NEXT_PUBLIC_* environment
+ * variables with sensible fallbacks. Update them in .env.local (dev) or the
+ * Vercel dashboard (prod) to roll changes across the entire funnel without
+ * code edits. See .env.local for the full list.
  */
+
+// ----- Env-driven knobs -----------------------------------------------------
+
+const num = (raw: string | undefined, fallback: number): number => {
+  if (!raw) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+
+const str = (raw: string | undefined, fallback: string): string => {
+  const v = (raw ?? "").trim();
+  return v.length > 0 ? v : fallback;
+};
+
+const formatINR = (n: number): string => `₹${n.toLocaleString("en-IN")}`;
+
+const WEBINAR_PRICE = num(process.env.NEXT_PUBLIC_WEBINAR_PRICE, 99);
+const WEBINAR_ANCHOR_PRICE = num(
+  process.env.NEXT_PUBLIC_WEBINAR_ANCHOR_PRICE,
+  499,
+);
+const WEBINAR_DATE_LABEL = str(
+  process.env.NEXT_PUBLIC_WEBINAR_DATE_LABEL,
+  "Sunday, 31st May 2026",
+);
+const WEBINAR_TIME_LABEL = str(
+  process.env.NEXT_PUBLIC_WEBINAR_TIME_LABEL,
+  "10:45 AM IST",
+);
+const WEBINAR_COUNTDOWN_ISO = str(
+  process.env.NEXT_PUBLIC_WEBINAR_COUNTDOWN_ISO,
+  "2026-05-31T10:45:00+05:30",
+);
+/** Length of the webinar in minutes. Used to compute the calendar event end time. */
+const WEBINAR_DURATION_MINUTES = num(
+  process.env.NEXT_PUBLIC_WEBINAR_DURATION_MINUTES,
+  180,
+);
+
+const BUMP_PRICES = {
+  buyerQualification: num(
+    process.env.NEXT_PUBLIC_BUMP_BUYER_QUALIFICATION_PRICE,
+    199,
+  ),
+  negotiationScripts: num(
+    process.env.NEXT_PUBLIC_BUMP_NEGOTIATION_SCRIPTS_PRICE,
+    199,
+  ),
+  paymentTerms: num(
+    process.env.NEXT_PUBLIC_BUMP_PAYMENT_TERMS_PRICE,
+    199,
+  ),
+  closersBundle: num(
+    process.env.NEXT_PUBLIC_BUMP_CLOSERS_BUNDLE_PRICE,
+    499,
+  ),
+};
 
 // ----- Types -----------------------------------------------------------------
 
@@ -25,14 +84,9 @@ export interface SegmentCard {
   outcome: string;
 }
 
-export interface RajaBlock {
-  tag: string;
-  title: string;
-  body: string;
-}
-
 export interface AgendaBlock {
-  time: string;
+  /** Optional. Older copy had hour-by-hour times; the new copy drops them. */
+  time?: string;
   label: string;
   title: string;
   bullets: string[];
@@ -41,13 +95,6 @@ export interface AgendaBlock {
 export interface TransformationRow {
   old: string;
   next: string;
-}
-
-export interface AboutAct {
-  number: string;
-  label: string;
-  title: string;
-  body: string;
 }
 
 export interface VideoTestimonial {
@@ -60,6 +107,32 @@ export interface VideoTestimonial {
 export interface FaqItem {
   question: string;
   answer: string;
+}
+
+export interface BonusCard {
+  /** Visual slug — maps to BonusIllustration component variant */
+  illustration:
+    | "verification"
+    | "fob"
+    | "community"
+    | "lms"
+    | "recording";
+  label: string;
+  title: string;
+  description: string;
+}
+
+export interface CheckoutBump {
+  id: string;
+  title: string;
+  price: number;
+  tagline: string;
+  intro: string;
+  bullets: string[];
+  insight?: string;
+  callToAction?: string;
+  /** When true, selecting this bump deselects all other bumps. */
+  isBundle?: boolean;
 }
 
 export interface ClientConfig {
@@ -80,26 +153,23 @@ export interface ClientConfig {
   };
 
   pricing: {
-    /** Actual amount charged in INR (multiplied by 100 to send paise to Razorpay) */
     price: number;
-    /** Display-only crossed-out anchor price */
     anchorPrice: number;
-    /** Plain string for Pabbly webhook payload */
     pabblyAmountString: string;
     currency: string;
     todayOnlyLabel: string;
   };
 
   event: {
-    /** Display string for the event date — e.g. "This Sunday" */
     dateLabel: string;
-    /** ISO datetime for the countdown target (IST = +05:30) */
     countdownTargetISO: string;
     timeLabel: string;
     timezone: string;
     platform: string;
     language: string;
     durationLabel: string;
+    /** Webinar length in minutes; used for calendar event end time. */
+    durationMinutes: number;
   };
 
   hero: {
@@ -121,6 +191,10 @@ export interface ClientConfig {
     primaryCtaText: string;
     trustLine: string;
     refundLine: string;
+    moneyBackBadge: {
+      title: string;
+      body: string;
+    };
   };
 
   scenes: {
@@ -134,15 +208,6 @@ export interface ClientConfig {
     intro: string;
     segments: [SegmentCard, SegmentCard];
     closingLine: string;
-    ctaText: string;
-  };
-
-  rajaProduct: {
-    eyebrow: string;
-    headline: string;
-    openingLine: string;
-    blocks: RajaBlock[];
-    closingExample: string;
     ctaText: string;
   };
 
@@ -168,14 +233,32 @@ export interface ClientConfig {
     ctaText: string;
   };
 
+  bonuses: {
+    eyebrow: string;
+    heading: string;
+    subheading: string;
+    cards: BonusCard[];
+  };
+
   about: {
     eyebrow: string;
     headline: string;
+    body: string;
     stats: StatCard[];
-    acts: AboutAct[];
     marqueeItems: string[];
-    videoSectionHeading: string;
+    visualCaption: string;
+  };
+
+  testimonials: {
+    heading: string;
     videos: VideoTestimonial[];
+  };
+
+  guarantee: {
+    badge: string;
+    heading: string;
+    paragraphs: string[];
+    ctaText: string;
   };
 
   antiPositioning: {
@@ -190,11 +273,22 @@ export interface ClientConfig {
 
   finalCta: {
     heading: string;
-    antiQualifier: string;
-    body: string;
+    guaranteeLine: string;
+    antiQualifierHeading: string;
+    antiQualifierItems: string[];
     closing: string;
     ctaText: string;
     fineprint: string;
+  };
+
+  checkout: {
+    productTitle: string;
+    productByline: string;
+    productMeta: string;
+    bonusesHeading: string;
+    bumpsHeading: string;
+    bumpsSubheading: string;
+    bumps: CheckoutBump[];
   };
 
   footer: {
@@ -221,7 +315,7 @@ export interface ClientConfig {
     clarityProjectId: string;
   };
 
-  razorpayModal: {
+  cashfreeModal: {
     brandName: string;
     description: string;
     themeColor: string;
@@ -234,21 +328,11 @@ export interface ClientConfig {
     purchaseValue: number;
   };
 
-  /**
-   * The 5 copy approval items from KETAN_LP_REBUILD_BRIEF.md page "What We Need From You".
-   * Defaults are conservative (the "fallback" column). Flip to true / set the string
-   * to upgrade to the more aggressive claim once verified.
-   */
   approvalItems: {
-    /** Item 1: "₹100+ crore export volume" — used in Variation B hero proof + stat strip. */
     showHundredCroreClaim: boolean;
-    /** Item 2: "9+ Countries" stat card. */
     showNineCountriesStat: boolean;
-    /** Item 3: trainees count. null = "thousands", or set "4,000+" / specific number. */
     trainedCountClaim: string | null;
-    /** Item 4: 30-minute refund line in Hero A trust block. */
     showRefundLine: boolean;
-    /** Item 5: competitor anti-positioning line in Section 9 — "₹1.5 lakh subscription + 12-month ad lock-in". */
     showCompetitorAntiPositioning: boolean;
   };
 }
@@ -279,25 +363,25 @@ export const clientConfig: ClientConfig = {
   },
 
   pricing: {
-    price: 99,
-    anchorPrice: 999,
-    pabblyAmountString: "99",
+    price: WEBINAR_PRICE,
+    anchorPrice: WEBINAR_ANCHOR_PRICE,
+    pabblyAmountString: String(WEBINAR_PRICE),
     currency: "INR",
     todayOnlyLabel: "today only",
   },
 
   event: {
-    dateLabel: "This Sunday",
-    // Next Sunday 24 May 2026, 10:45 AM IST. Update when shipping a subsequent webinar.
-    countdownTargetISO: "2026-05-24T10:45:00+05:30",
-    timeLabel: "10:45 AM IST",
+    dateLabel: WEBINAR_DATE_LABEL,
+    countdownTargetISO: WEBINAR_COUNTDOWN_ISO,
+    timeLabel: WEBINAR_TIME_LABEL,
     timezone: "Asia/Kolkata",
     platform: "Live on Zoom",
     language: "Hindi",
-    durationLabel: "3 ghante seedha Ketan ke saath",
+    durationLabel: "3 ghante actionable content",
+    durationMinutes: WEBINAR_DURATION_MINUTES,
   },
 
-  // -------- HERO (Variation A — sharpened winner) --------
+  // -------- HERO --------
   hero: {
     variant: "A",
     preHeaderFlag:
@@ -315,35 +399,38 @@ export const clientConfig: ClientConfig = {
       "Because nobody taught them how to find real buyers.",
     ],
     withoutStack:
-      "Without spice-fruit-vegetable scams. Without fake B2B portal inquiries. Without 1-year guarantee traps from other coaches.",
+      "Without Embassy contacts. Without Google searches. Without B2B portal traps. Without Port Data scams. Without 1-year guarantee gimmicks.",
     promiseText:
-      "Iss Sunday, 3 ghante, live webinar. 1 framework called “Raja Product” + 2 proven buyer-finding systems that can help you get genuine international orders. Wahi system jo Mein khud 10 saal se 3 export brands ke saath use kar raha hoon.",
-    promiseFrameworkName: "Raja Product",
-    countdownLabel: "Webinar shuru hone me",
-    eventDetailsLine:
-      "Date: This Sunday   ·   Time: 10:45 AM IST   ·   Venue: Live on Zoom   ·   Language: Hindi",
-    priceAnchor: "₹999",
-    priceActual: "₹99",
+      "Sunday, 31st May 2026. 3 ghante live Zoom webinar. 2 proven buyer-finding systems that can help you get genuine international orders. Wahi system jo Mein 10+ saal se 2 export brands ke saath use kar raha hoon.",
+    promiseFrameworkName: "",
+    countdownLabel: "Webinar shuru hone mein",
+    eventDetailsLine: `Date: ${WEBINAR_DATE_LABEL}   ·   Time: ${WEBINAR_TIME_LABEL}   ·   Venue: Live on Zoom   ·   Language: Hindi`,
+    priceAnchor: formatINR(WEBINAR_ANCHOR_PRICE),
+    priceActual: formatINR(WEBINAR_PRICE),
     priceSuffix: "today only",
-    primaryCtaText: "Book My ₹99 Seat → This Sunday Only",
-    trustLine:
-      "Live on Zoom · Hindi me · Recording nahi milegi · 3 ghante seedha Ketan ke saath",
+    primaryCtaText: "Book My Seat at ₹99",
+    trustLine: "Live on Zoom · Hindi me · 3 ghante actionable content",
     refundLine:
-      "30 minutes me value nahi mili? Full refund. Zero risk.",
+      "100% Money-Back Guarantee. ₹99 wapas even after watching the entire webinar.",
+    moneyBackBadge: {
+      title: "100% Money-Back Guarantee",
+      body:
+        "Webinar attend karo, pura dekho. Agar value nahi mili, ₹99 wapas. Even after watching the entire webinar.",
+    },
   },
 
   // -------- SECTION 2 — Scenes Recall --------
   scenes: {
-    heading: "Yeh scenes pehchante ho?",
+    heading: "Kya Aapne Bhi Yeh Face Kiya Hai?",
     scenes: [
-      "Tuesday raat 11 baje. Phone vibrate hua. “Hello, this is Mohamed from Dubai. I need your product catalog.” Tumne 4 minute me reply kiya. Phir silence. Pura week silence. Aaj tak silence.",
+      "Tuesday raat 11 baje. Phone vibrate hua. “Hello, this is Mohamed from Dubai. I need your product catalog.” Tumne 4 minute mein reply kiya. Phir silence. Pura week silence. Aaj tak silence.",
       "Monday morning. 6 ghante Excel mein quote banaya. ₹4.5 lakh ka order. PDF bheja. Read receipt aaya. Reply nahi.",
       "Gulf Food exhibition. 3 din wahaan khade rahe. 200 cards baant diye. Aaj tak ek call back nahi aaya. Sirf “we will get back” wale emails.",
     ],
     outro: "Yeh exactly woh moments hain jo iss webinar mein solve hote hain.",
   },
 
-  // -------- SECTION 3 — Who This Is For (2 segments) --------
+  // -------- SECTION 3 — Who This Is For --------
   who: {
     heading: "Yeh Webinar Tumhare Liye Hai Agar…",
     intro: "Read the one that sounds like your situation.",
@@ -358,11 +445,11 @@ export const clientConfig: ClientConfig = {
           "IEC done. GST done. Documentation pura. Abhi tak ek bhi real international buyer nahi mila.",
           "B2B portals pe paise lagaye. Sirf fake inquiries.",
           "Exhibitions me ja chuke. Card baant ke aaye. Ek bhi call back nahi.",
-          "Kisi coach ne spice, fruit, ya vegetable me dhakel diya.",
-          "Ghar walo ko 6 mahine se “abhi process me hai” bol rahe ho.",
+          "Kisi coach ne spice, fruit, ya vegetable mein dhakel diya.",
+          "Ghar walo ko 6 mahine se “abhi process mein hai” bol rahe ho.",
         ],
         outcome:
-          "This webinar gives you the exact system to crack your first real international order.",
+          "This webinar gives you the buyer-finding plus buyer communication system to crack your first real international order.",
       },
       {
         icon: "📦",
@@ -372,179 +459,161 @@ export const clientConfig: ClientConfig = {
         ticksHeading: "You’re stuck here?",
         bullets: [
           "Ek container nikalta hai, phir 2-3 mahine kuch nahi hota.",
-          "Same buyer baar baar order nahi karta. Naye buyer system nahi hai.",
-          "Daily 3-4 inquiries Excel me likhi hain. Follow-up tracking nahi hai.",
-          "Tumhara product spice/commodity hai. Margin 3-5%.",
-          "Thak gaye ho. Pehle system clear chahiye, phir scaling community join karna chahte ho.",
+          "Same buyer baar baar order nahi karta. Naye buyer lane ki system nahi hai.",
+          "Daily 3-4 inquiries Excel mein likhi hain. Follow-up tracking nahi hai.",
+          "Tumhara product regular hai jisme margin 3-5%. Thak gaye ho.",
+          "Pehle system clear chahiye, phir scaling community join karna chahte ho.",
         ],
         outcome:
-          "This webinar applies Raja Product to your current product and gives you the scaling playbook.",
+          "This webinar fixes the problem of not getting consistent buyers and gives you the follow-up approach that converts.",
       },
     ],
     closingLine: "Different starting points. One framework. One Sunday.",
-    ctaText: "Book My ₹99 Seat → This Sunday",
+    ctaText: "Book My Seat at ₹99",
   },
 
-  // -------- SECTION 4 — Raja Product Mechanism --------
-  rajaProduct: {
-    eyebrow: "The Mechanism",
-    headline:
-      "90% Indian Exporters Galat Product Choose Karte Hain. Wahi Pehli Galti Hai.",
-    openingLine:
-      "Yeh sabse badi galti hai. Aur kisi ne tumhe nahi batayi.",
-    blocks: [
-      {
-        tag: "BLOCK 1 — MISCONCEPTION",
-        title: "“Yeh product export hota hai”",
-        body:
-          "Tum spice export karna chahte ho. Ya rice. Ya cotton. Ya frozen fruits. Kyunki kisi coach ne ya YouTube guru ne bola “yeh export hota hai bhai.”",
-      },
-      {
-        tag: "BLOCK 2 — THE TRAP",
-        title: "Har product export hota hai. Sawaal kuch aur hai.",
-        body:
-          "Sach yeh hai: jo bhi product ka HSN code daloge, woh export crore me hota hai. Har product ka international market hai. Toh “yeh export hota hai” kuch matlab nahi rakhta. Asli question yeh hai: yeh product TUMSE export ho sakta hai ya nahi?\n\n5,000+ Indian merchant exporters pehle se spice, fruit, vegetable me race kar rahe hain. Tum 5,001th banoge. Price war. Zero margin. Buyer chala jaata hai 50 paise saste competitor ke paas.",
-      },
-      {
-        tag: "BLOCK 3 — THE FRAMEWORK",
-        title: "Raja Product",
-        body:
-          "Iss webinar me Mein “Raja Product” framework dikhata hoon. Woh side product jisme competition kam hai, margin high hai, aur successful exporters silently chala rahe hain.",
-      },
-      {
-        tag: "BLOCK 4 — CONCRETE EXAMPLE",
-        title: "Tiles vs Tile Display Systems",
-        body:
-          "Tiles export karne ki sab race lagi hai. Mein tile DISPLAY systems export karta hoon. Har showroom waale ko display chahiye. Global demand. Competition 50, not 5,000. Margin 30%, not 3%.",
-      },
-    ],
-    closingExample: "",
-    ctaText: "Book My ₹99 Seat → This Sunday",
-  },
-
-  // -------- SECTION 5 — Hour-by-Hour Agenda --------
+  // -------- SECTION 4 — What This 3-Hour Webinar Covers --------
   agenda: {
-    heading: "This Sunday’s Live Webinar Agenda",
-    subheading: "Every minute mapped. You leave with a system, not just notes.",
+    heading: "What This 3-Hour Webinar Covers",
+    subheading:
+      "Sunday’s Live Webinar · 31st May 2026 · 10:45 AM IST · Zoom. Four content blocks across 3 hours. You leave with a system, not just notes.",
     blocks: [
       {
-        time: "10:45 AM — 11:30 AM",
-        label: "HOUR 1",
+        label: "BLOCK 1",
         title: "Diagnosis: The 3 Mistakes Killing Your Export Business",
         bullets: [
           "Why your B2B portal inquiries are 90% fake (and how to filter them in 30 seconds)",
-          "Why your follow-up system is broken (live Zoho CRM setup inside the webinar)",
-          "Why your communication weakens at “discount?” or “credit?” (4 ready response scripts)",
+          "Why your follow-up system is broken (and how to build a relationship with the buyer)",
+          "Why your communication weakens at “discount?” or “credit?” (and how to fix it)",
         ],
       },
       {
-        time: "11:30 AM — 12:30 PM",
-        label: "HOUR 2",
-        title: "The Raja Product Framework — Live Reveal",
+        label: "BLOCK 2",
+        title: "How to Handle Buyer Conversations That Convert",
         bullets: [
-          "Why “yeh product export hota hai” is the wrong question",
-          "The 3 filters Mein use karta hoon to test any product for export viability",
-          "Live walkthrough using your product category (interactive Q&A)",
+          "Why buyers ghost after you send price (and the question framework that prevents it)",
+          "Sample, credit, and discount objection responses that build trust instead of losing the deal",
+          "Building rapport BEFORE pricing (so the buyer doesn’t use your price as ammunition with their regular supplier)",
         ],
       },
       {
-        time: "12:30 PM — 1:15 PM",
-        label: "HOUR 3",
-        title: "Country Selection + Buyer-Finding Systems",
+        label: "BLOCK 3",
+        title: "The 2 Real Buyer-Finding Systems",
         bullets: [
-          "Meta Ads Library demo (95% of Indian exporters use nahi karte)",
-          "LinkedIn + email combo for Europe and Western markets",
-          "Country-specific channels for Gulf, Africa, Southeast Asia",
+          "Meta Ads Library demo (a method most Indian exporters have never tried)",
+          "Big Brand Dealers approach with a live case study",
         ],
       },
       {
-        time: "1:15 PM — 1:45 PM",
-        label: "LAST 30 MINUTES",
-        title: "Live Q&A With Ketan",
+        label: "BLOCK 4",
+        title: "Country-Specific Follow-Up Approach",
         bullets: [
-          "Your specific product, country, or buyer situation answered live",
-          "No pre-vetted questions. Real exporters, real problems, real answers",
+          "Gulf: relationship-driven 3-5 month follow-up cycles",
+          "US: fast, professional, number-driven decisions",
+          "Africa: quick 15-20 day decision cycles, long-term once locked",
+          "Europe: heavy documentation, quality-first conversations",
         ],
       },
     ],
-    ctaText: "Book My ₹99 Seat → This Sunday",
+    ctaText: "Book My Seat at ₹99",
   },
 
-  // -------- SECTION 6 — Transformation Table --------
+  // -------- SECTION 5 — Old You vs New You --------
   transformation: {
-    heading: "From “Process Mein Hai” to Real Dollar Income",
-    headerOld: "THE OLD YOU (today)",
-    headerNext: "THE NEW YOU (after this Sunday)",
+    heading: "Old You vs New You",
+    headerOld: "BEFORE SUNDAY",
+    headerNext: "AFTER SUNDAY",
     rows: [
       {
-        old: "Daily price quote bhej rahe ho. Daily buyer gayab ho raha hai.",
-        next: "Raja Product framework clear hai. Exact product clear hai jo export ho sakta hai.",
+        old: "Daily price quote bhej rahe ho. Buyer gayab ho raha hai.",
+        next: "Question framework se buyer engage ho raha hai. Ghosting kam ho rahi hai.",
       },
       {
-        old: "Spice/commodity me 5,000 exporters ke saath price war.",
-        next: "Low-competition product chosen. Margin 30%, not 3%.",
+        old: "Buyer puchhe “discount?” ya “credit?”. Tum stuck ho jaate ho.",
+        next: "Confidence se discount, credit, sample objections handle kar rahe ho.",
       },
       {
         old: "Ghar walo ko 6 mahine se “process mein hai” bolna padta hai.",
         next: "Pehla international order ka clear roadmap hai. Family ko proof dikha sakte ho.",
       },
       {
-        old: "2-3 lakh laga chuke ho courses, portals, exhibitions me. ROI zero.",
-        next: "₹99 mein actual system mil gaya. Free Zoho CRM setup. 4 scripts ready.",
+        old: "2-3 lakh laga chuke ho courses, portals, exhibitions mein. ROI zero.",
+        next: "₹99 mein actual system: 2 buyer-finding techniques + buyer communication + country-specific follow-up.",
       },
       {
         old: "Coach hone ka drama dekh chuke. Trust khatam.",
-        next: "Real exporter dekha jo padhata bhi hai. Container B-roll, brand names, multiple countries.",
+        next: "Real exporter dekha jo padhata bhi hai. 2 export brands, ₹100+ crore in shipments.",
       },
     ],
-    outro: "Yeh shift ek Sunday me hota hai. ₹99 mein. Live webinar me.",
+    outro: "Ek Sunday. ₹99. Live webinar.",
   },
 
-  // -------- SECTION 7 — Identity Outcomes --------
+  // -------- SECTION 6 — Identity Outcomes --------
   identityBadges: {
-    heading: "After This Sunday, You Become…",
+    heading: "After This Sunday, Tum Wahi Exporter Ban Jaate Ho Jo…",
     badges: [
-      "The Exporter Who Cracks Their First International Order",
-      "The Exporter Whose Family Stops Asking “Kab Hoga?”",
-      "The Exporter Other Exporters Quietly Copy",
-      "The Exporter Who Builds Real Dollar Income",
+      "…buyer ke “send your price” message ka professional reply de sakta hai. Without giving the actual price first.",
+      "…Meta Ads Library mein search karke real importers shortlist kar sakta hai. Apne product category mein.",
+      "…buyer ke “discount?” ya “credit?” objection ka counter-question approach jaanta hai.",
+      "…follow-up ko system se chalata hai, mood se nahi. Country-specific timelines pata hain.",
     ],
-    outro: "One Sunday. All four shifts. ₹99.",
-    ctaText: "Book My ₹99 Seat → This Sunday",
+    outro: "Sunday, 31st May. ₹99. Live webinar.",
+    ctaText: "Book My Seat at ₹99",
+  },
+
+  // -------- SECTION 7 — Bonuses (NEW) --------
+  bonuses: {
+    eyebrow: "Included With Your ₹99",
+    heading: "What You Also Get",
+    subheading:
+      "Webinar plus 5 bonuses included with your ₹99 registration.",
+    cards: [
+      {
+        illustration: "verification",
+        label: "Bonus 01",
+        title: "5-Step Buyer Verification Checklist",
+        description: "Avoid fraud buyers. Save lakhs in losses.",
+      },
+      {
+        illustration: "fob",
+        label: "Bonus 02",
+        title: "Perfect FOB Price Calculation Sheet",
+        description:
+          "Price confidently without undercutting or losing profit.",
+      },
+      {
+        illustration: "community",
+        label: "Bonus 03",
+        title: "Access to Premium WhatsApp Communities",
+        description:
+          "Network with serious exporters, not beginners asking basics.",
+      },
+      {
+        illustration: "lms",
+        label: "Bonus 04",
+        title: "Mobile App & Web LMS Portal Access",
+        description: "Learn anytime, anywhere with structured content.",
+      },
+      {
+        illustration: "recording",
+        label: "Bonus 05",
+        title: "1-Year Recording Access",
+        description: "Revise and implement at your own pace.",
+      },
+    ],
   },
 
   // -------- SECTION 8 — About Ketan --------
   about: {
     eyebrow: "About Ketan",
-    headline: "Mein Coach Nahi Hoon. Mein Exporter Hoon Jo Padhata Bhi Hai.",
+    headline: "Mein Bhi Wahin Tha Jahaan Aap Aaj Ho.",
+    body:
+      "Mein bhi struggle kiya. Courses kiye. Portals try kiye. Exhibitions attend ki. Agents ko commission diya. Zero result.\n\nSlowly, jo kaam nahi karta tha woh chhoda. Jo kaam karta tha woh systematized kiya. Buyer-finding ke 2 methods nikle jo actually genuine importers tak le jaate hain. Buyer communication ka approach develop kiya jo ghosting, credit demands, aur sample requests sambhalta hai.\n\nAaj 2 export brands chalata hoon (BizLife aur IJARO). Saath mein financial advisory company hai (Madhusudan Tax and Wealth Management). Indian exporters ke saath wahi system share karta hoon jo Mein khud daily use karta hoon.",
     stats: [
-      { value: "10+ Years", label: "Building Export Business" },
-      { value: "3 Brands", label: "BizLife · IJARO · Madhusudan" },
-      { value: "9+ Countries", label: "Gulf · Africa · SEA" },
+      { value: "10+ Years", label: "Hands-on Goods Export Experience" },
+      { value: "2 Brands", label: "BizLife · IJARO" },
       { value: "100+ Cr", label: "Cumulative Export Volume" },
-    ],
-    acts: [
-      {
-        number: "01",
-        label: "ACT 01",
-        title: "The Failed Years (2006–2010)",
-        body:
-          "Delhi me trainings ke chakkar kaate. Hawaai jahaaz me paise, hotel me paise, registration me paise. Saara training “import-export documentation” pe tha. Buyer kaise lana hai, kisi ne nahi bataya. 4 saal yeh sochte hue waste ho gaye ki documentation mein kuch missing hai.",
-      },
-      {
-        number: "02",
-        label: "ACT 02",
-        title: "The System That Changed Everything (2010–2012)",
-        body:
-          "Phir Mein ne apna system banaya. Raja Product framework. Country-by-country buyer finding. Negotiation scripts. Follow-up structure. Pehla container 2012 mein nikla. Phir doosra. Phir teesra. Aur phir 3 brands shuru hue: BizLife. IJARO. Madhusudan.",
-      },
-      {
-        number: "03",
-        label: "ACT 03",
-        title: "Today (2026)",
-        body:
-          "10+ saal export business. Tiles, ceramic, building materials, display systems Gulf, Africa, aur Southeast Asia mein. Aur thousands of Indian exporters mere webinars aur workshops mein attend kar chuke hain.",
-      },
+      { value: "9+ Countries", label: "Gulf · Africa · Southeast Asia" },
     ],
     marqueeItems: [
       "BizLife",
@@ -554,17 +623,20 @@ export const clientConfig: ClientConfig = {
       "Gulf",
       "Africa",
       "Southeast Asia",
-      "Thousands Trained",
       "Tiles",
       "Ceramic",
       "Building Materials",
       "Display Systems",
-      "Raja Product Framework",
+      "₹100+ Crore Shipped",
     ],
-    videoSectionHeading: "Real Exporters · Real Words",
+    visualCaption:
+      "Illustrative placeholder. Container B-roll and factory walkthrough drop in once Ketan delivers footage.",
+  },
+
+  // -------- SECTION 9 — Testimonials --------
+  testimonials: {
+    heading: "Real Indian Exporters Who Used This System",
     videos: [
-      // Placeholder YouTube IDs — replace with real Shorts IDs from the winning LP.
-      // The components use the embed-on-click pattern (thumbnail until clicked).
       {
         id: "testimonial-1",
         youtubeId: "",
@@ -575,65 +647,184 @@ export const clientConfig: ClientConfig = {
         youtubeId: "",
         title: "Student testimonial 2 (YouTube Short)",
       },
+      {
+        id: "testimonial-3",
+        youtubeId: "",
+        title: "Student testimonial 3 (YouTube Short)",
+      },
+      {
+        id: "testimonial-4",
+        youtubeId: "",
+        title: "Student testimonial 4 (YouTube Short)",
+      },
+      {
+        id: "testimonial-5",
+        youtubeId: "",
+        title: "Student testimonial 5 (YouTube Short)",
+      },
+      {
+        id: "testimonial-6",
+        youtubeId: "",
+        title: "Student testimonial 6 (YouTube Short)",
+      },
     ],
   },
 
-  // -------- SECTION 9 — Anti-Positioning --------
+  // -------- SECTION 10 — Money-Back Guarantee --------
+  guarantee: {
+    badge: "100% Money-Back Guarantee",
+    heading: "₹99 Try Karo. Agar Value Nahi Mili, ₹99 Wapas.",
+    paragraphs: [
+      "Sunday ko webinar attend karo. Pura 3 ghante dekho. Agar Sunday shaam tak aapko lagta hai value nahi mili, ek WhatsApp message bhejo. ₹99 wapas. Bina koi sawaal, bina koi paperwork, bina koi process.",
+      "Mein yeh guarantee issliye de raha hoon kyunki Mein 10+ saal ka actual export experience laaya hoon iss webinar mein. Aapne 4-5 useless webinars dekhe honge. Iss 6th waale par confident hoke aao. Risk Mein le raha hoon, aap nahi.",
+    ],
+    ctaText: "Book My Seat at ₹99",
+  },
+
+  // -------- SECTION 11 — Anti-Positioning --------
   antiPositioning: {
-    heading: "5 Cheezein Jo Yeh Webinar Tumhe NAHI Bolega",
+    heading: "Yeh Webinar Aapko NAHI Sikhayega",
     items: [
-      "Mein 1-year “guarantee” nahi deta. (Why this is actually a 12-month ad spend trap)",
-      "Mein “kal hi crorepati ban jao” nahi bolta. (Real timeline: first order 1-3 months, repeat 6-12)",
-      "Mein tumhe spice, fruit, ya vegetable me nahi dhakelta. (Opposite of Raja Product)",
-      "Mein 10 saal purani buyer list nahi deta. (Why those lists are dead)",
-      "Mein “₹1.5 lakh subscription + 12 mahine mandatory ad lock-in” nahi bechta.",
+      "IEC ya GST registration kaise karte hain. Yeh aapka CA already kar chuka hai.",
+      "“Overnight crorepati” banne ka jhootha vaada. Real first-order ka realistic timeline 1 se 3 mahine hai.",
+      "Spice, fruit, ya vegetable export ka push. Yeh hum aapko nahi dhakelte.",
+      "10-saal purani buyer lists. Hum aapko methods sikhate hain, lists nahi bechtey.",
+      "Mandatory subscription ya 12-mahine ka ad lock-in. Yahaan ek-baar ka ₹99 hai, ek-baar ki commitment.",
     ],
   },
 
-  // -------- SECTION 10 — FAQ --------
+  // -------- SECTION 12 — FAQ --------
   faq: {
-    heading: "Sawaal Jo Tumhare Mann Mein Hain",
+    heading: "Frequently Asked Questions",
     items: [
       {
-        question: "Mere buyers reply hi nahi karte. Yeh webinar woh fix karega?",
+        question: "Yeh webinar kis ke liye hai?",
         answer:
-          "Haan, exactly yahi sabse pehla problem hai jo hum solve karte hain. Hour 1 me “Diagnosis” session hai jismein dikhate hain ki tumhari B2B portal inquiries 90% kyun fake hoti hain aur unhe 30 second me kaise filter karna hai. Plus 4 ready response scripts milte hain jo communication breakdown rokte hain when buyer asks “discount?” or “credit?”",
-      },
-      {
-        question: "Order ka guarantee dete ho?",
-        answer:
-          "Nahi. Honest answer — jo bhi tumhe order ka guarantee de raha hai, woh ya toh tumse jhooth bol raha hai ya tumhare paise se 1-year ad spend karwa raha hai. Mein system deta hoon. Tum daily kaam karte ho, system kaam karta hai. Real timeline: pehla order 1-3 months, repeat 6-12 months. Mehnat tumhari, framework mera.",
-      },
-      {
-        question: "Mein beginner hoon. Pehla order nahi mila. Kaam aayega?",
-        answer:
-          "Bilkul. Webinar specifically 2 segments ke liye banaya gaya hai — Segment 1: manufacturers, traders, sourcing agents jinka pehla international order nahi aaya. Tum exactly yahi segment ho. Hour 2 me Raja Product framework live dikhayenge with your product category in Q&A.",
+          "Indian manufacturers, traders, aur sourcing agents jo physical goods export karna chahte hain. Doesn’t matter agar aapne abhi tak ek bhi order nahi kiya ya already 1 container har 2-3 mahine kar rahe ho.",
       },
       {
         question: "Recording milegi agar Sunday miss kar diya?",
         answer:
-          "Nahi. Yeh deliberate hai. Live-only isliye rakha hai kyunki Hour 2 ka product walkthrough aur Hour 4 ka Q&A interactive hai — tumhare specific product, country, buyer situation pe live answers. Recording dekh ke woh value waste ho jaati hai. Iss Sunday 10:45 AM IST. Pakka time block kar lo.",
+          "Haan. Sabhi registered attendees ko 1-Year Recording Access milta hai. Lekin live attend karna best hai. Recording aapka backup hai.",
       },
       {
-        question: "Webinar ke baad kuch upsell hai?",
+        question: "Agar webinar mein value nahi mili to?",
         answer:
-          "Haan, transparent answer — ek ₹4,999 ka deeper workshop hai jo iss webinar ke end me offer karte hain, jismein 4 hafte ki live community access aur weekly review calls hain. Lekin yeh totally optional hai. Webinar ka ₹99 wala value standalone diya jaata hai. Workshop chahiye toh lo, nahi chahiye toh aise hi nikal jao with framework + scripts + CRM setup.",
+          "₹99 wapas. 100% money-back guarantee, even after watching the entire webinar. Ek WhatsApp message bhejo, paisa wapas. Bina koi sawaal.",
+      },
+      {
+        question: "Hindi mein hoga ya English mein?",
+        answer:
+          "Hinglish mein. Hindi plus English mix. Technical terms English mein, experience based content Hindi mein.",
+      },
+      {
+        question: "Kya Ketan tile aur ceramic ke alawa baaki goods bhi sikhata hai?",
+        answer:
+          "Haan. Methods aur frameworks product-agnostic hain. Tile, building materials, auto parts, PVC, machinery. Koi bhi physical goods. Live demo mein different categories ke examples aate hain.",
+      },
+      {
+        question: "Kya yeh same as portals?",
+        answer:
+          "Bilkul opposite. Portals aapko inquiries dete hain (jo 90% fake hote hain). Yeh webinar aapko methods sikhata hai jisme aap directly real buyers tak pahunch sakte ho, without depending on portals.",
       },
     ],
   },
 
-  // -------- SECTION 11 — Final CTA with Anti-Qualifier --------
+  // -------- SECTION 13 — Final CTA + Anti-Qualifier --------
   finalCta: {
-    heading: "This Sunday. 10:45 AM. Live Zoom.",
-    antiQualifier:
-      "If you want a motivational video, a “buyer list” you can copy-paste, or a one-click hack, DON’T register. This is the actual system. It needs your attention for 3 hours and your daily action for 90 days.",
-    body:
-      "But if you’re ready for the framework that 80% of Indian exporters never discover, the one that took 4 years of mistakes to build, and the one that runs 3 export brands today, book your ₹99 seat.",
-    closing:
-      "By 1:45 PM Sunday, tumhe pata chal jayega ki tumhara Raja Product kya ho sakta hai, kis country me pehla buyer dhoondhna hai, aur usse exactly kya message bhejna hai pehli baar. Pehla step dollar income ki taraf.",
-    ctaText: "Book My ₹99 Seat Now",
+    heading: "₹99. Sunday, 31st May 2026. 3 ghante. Ek decision.",
+    guaranteeLine:
+      "100% Money-Back Guarantee. Webinar dekh ke bhi value nahi mili? ₹99 wapas.",
+    antiQualifierHeading: "Don’t Register If…",
+    antiQualifierItems: [
+      "Aapko documentation aur IEC ka basic course chahiye. Yeh webinar wahaan se shuru nahi karta.",
+      "Aap “overnight crorepati” formula dhundhte ho. Real exporters 1 se 3 mahine lete hain pehla order land karne mein.",
+      "Aap spice, fruit, ya vegetable export specialist banna chahte ho. Yeh webinar physical hard goods ke liye optimized hai.",
+    ],
+    closing: "Agar Yeh Sab Aapke Liye OK Hai, Tab:",
+    ctaText: "Book My Seat at ₹99",
     fineprint:
-      "Link 30 minutes pehle WhatsApp pe aayegi. Hindi me hoga. Camera optional hai. Notebook saath rakhna.",
+      "Optional add-on at checkout: ₹499 toolkit including buyer qualification scripts and advanced verification checklist.",
+  },
+
+  // -------- CHECKOUT --------
+  checkout: {
+    productTitle: "The Export Unstuck 1-Day Webinar",
+    productByline: "By Ketan Bizlife",
+    productMeta:
+      "Sunday, 31st May 2026 · 10:45 AM IST · Live on Zoom · Hindi",
+    bonusesHeading: "5 Free Bonuses Included With Your ₹99 Registration",
+    bumpsHeading: "Smart Add-ons (Optional)",
+    bumpsSubheading:
+      "Tools that turn what you learn on Sunday into closed deals next week.",
+    bumps: [
+      {
+        id: "buyer-qualification",
+        title: "Export Buyer Qualification Checklist",
+        price: BUMP_PRICES.buyerQualification,
+        tagline: "ONE-TIME OFFER",
+        intro: "Instantly know which buyers are worth your time.",
+        bullets: [
+          "Identify serious buyers vs time-pass inquiries",
+          "Know who to reply to, who to ignore, and who to test",
+          "Check buyer intent, credibility, and buying capacity in minutes",
+          "Reduce payment risk before sending quotes or samples",
+        ],
+        insight:
+          "Most exporters don’t lose deals. They lose time on the wrong buyers.",
+        callToAction:
+          "Use this checklist immediately after Sunday’s webinar.",
+      },
+      {
+        id: "negotiation-scripts",
+        title: "Export Sales Negotiation Scripts",
+        price: BUMP_PRICES.negotiationScripts,
+        tagline: "ONE-TIME OFFER",
+        intro:
+          "Never get stuck when buyers ask uncomfortable questions.",
+        bullets: [
+          "Ready-to-use WhatsApp, email, and call scripts",
+          "Exact replies for discount, credit, and free sample requests",
+          "Say the right words without sounding desperate or unprofessional",
+          "Close deals faster with proven exporter conversations",
+        ],
+        insight:
+          "Confidence comes from knowing exactly what to say. Not guessing.",
+        callToAction: "Copy. Paste. Send. Done.",
+      },
+      {
+        id: "payment-terms",
+        title: "Payment Terms Negotiation Guide (eBook)",
+        price: BUMP_PRICES.paymentTerms,
+        tagline: "ONE-TIME OFFER",
+        intro: "Protect your money before you ship your goods.",
+        bullets: [
+          "Understand advance, LC, credit, and risky payment terms",
+          "Learn when to accept, negotiate, or refuse payment conditions",
+          "Avoid buyer tricks that cause delays and defaults",
+          "Use ready-made scripts to handle payment talks confidently",
+        ],
+        insight:
+          "One wrong payment decision can erase months of hard work.",
+        callToAction: "Highly recommended before your first export order.",
+      },
+      {
+        id: "closers-bundle",
+        title: "The Export Closer’s Pack — All 3 Together",
+        price: BUMP_PRICES.closersBundle,
+        tagline: "BEST VALUE · BUNDLE · SAVE ₹98",
+        intro: "All 3 tools above in one bundle:",
+        bullets: [
+          "Export Buyer Qualification Checklist (₹199)",
+          "Export Sales Negotiation Scripts (₹199)",
+          "Payment Terms Negotiation Guide eBook (₹199)",
+        ],
+        insight:
+          "Individually: ₹597. Bundle today: ₹499. Webinar mein system seekhoge. In tools mein exact words milenge.",
+        callToAction: "Tick only this one to get all 3.",
+        isBundle: true,
+      },
+    ],
   },
 
   // -------- FOOTER --------
@@ -648,7 +839,6 @@ export const clientConfig: ClientConfig = {
       "Disclaimer: Results vary based on individual effort, product category, and market conditions. This webinar teaches a framework and system; outcomes depend on consistent application. No guaranteed income claims are made.",
   },
 
-  // -------- SOCIAL (footer icons; render only when non-empty) --------
   social: {
     instagram: "",
     youtube: "",
@@ -657,41 +847,35 @@ export const clientConfig: ClientConfig = {
     whatsappChannel: "",
   },
 
-  // -------- COMMUNITY (thank-you page CTA; renders only when non-empty) --------
   community: {
     whatsappGroupUrl: "",
     fallbackMessage:
       "WhatsApp group invite + Zoom link will reach you 30 minutes before the webinar.",
   },
 
-  // -------- ANALYTICS (script tags render only when non-empty) --------
   analytics: {
     gaMeasurementId: "",
     clarityProjectId: "",
   },
 
-  // -------- RAZORPAY MODAL --------
-  razorpayModal: {
+  cashfreeModal: {
     brandName: "Ketan BizLife",
-    description: "Indian Export Insider Workshop · This Sunday 10:45 AM IST",
-    themeColor: "#2563EB",
-    // Razorpay needs a publicly-reachable HTTPS URL. Paste Vercel preview URL of /logo.svg after first deploy.
+    description: `Indian Export Insider Workshop · ${WEBINAR_DATE_LABEL} · ${WEBINAR_TIME_LABEL}`,
+    themeColor: "#2F6BFF",
     logoUrl: "",
   },
 
-  // -------- META CAPI --------
   capi: {
     enabled: true,
-    eventName: "Purchase",
-    purchaseValue: 99,
+    eventName: "sales",
+    purchaseValue: WEBINAR_PRICE,
   },
 
-  // -------- 5 COPY APPROVAL TOGGLES (defaults = conservative fallbacks) --------
   approvalItems: {
-    showHundredCroreClaim: true, // Hero A uses Section 8 stat strip; toggle flips the 4th stat card
+    showHundredCroreClaim: true,
     showNineCountriesStat: true,
-    trainedCountClaim: null, // null → "thousands"; set "4,000+" once verified
-    showRefundLine: false, // 30-min refund line off by default — flip on once you confirm operational ability to refund
-    showCompetitorAntiPositioning: true, // Section 9 item #5 — competitor anti-positioning line
+    trainedCountClaim: null,
+    showRefundLine: true,
+    showCompetitorAntiPositioning: true,
   },
 };

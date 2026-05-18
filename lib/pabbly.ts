@@ -10,7 +10,12 @@ export async function firePabblyWebhook(args: {
   utm: UtmPayload;
   paymentId: string;
   orderId: string;
-  amount: string;
+  /** Grand total paid (base + bumps), in major units (e.g. 598 for ₹598) */
+  amount: number;
+  basePrice: number;
+  bumpsTotal: number;
+  /** Human-readable list of selected bumps, e.g. "Title A (₹199); Title B (₹199)" or "none" */
+  bumps: string;
   currency: string;
   timezone: string;
 }): Promise<void> {
@@ -49,7 +54,10 @@ export async function firePabblyWebhook(args: {
     country_code: args.customer.countryCode,
     payment_id: args.paymentId,
     order_id: args.orderId,
-    amount: args.amount,
+    amount: String(args.amount),
+    base_price: String(args.basePrice),
+    bumps_total: String(args.bumpsTotal),
+    bumps: args.bumps,
     currency: args.currency,
     payment_date: dateFormatter.format(now),
     payment_time: timeFormatter.format(now),

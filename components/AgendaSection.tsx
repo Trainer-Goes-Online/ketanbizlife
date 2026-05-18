@@ -10,7 +10,7 @@ interface Props {
 
 export function AgendaSection({ agenda, checkoutHref }: Props) {
   return (
-    <section className={styles.section} aria-labelledby="agenda-heading">
+    <section className={`light ${styles.section}`} aria-labelledby="agenda-heading">
       <div className="container">
         <ScrollReveal>
           <h2 id="agenda-heading" className={styles.heading}>
@@ -25,17 +25,22 @@ export function AgendaSection({ agenda, checkoutHref }: Props) {
               <li className={styles.block}>
                 <div className={styles.meta}>
                   <span className={styles.label}>{block.label}</span>
-                  <span className={styles.time}>{block.time}</span>
+                  {block.time ? (
+                    <span className={styles.time}>{block.time}</span>
+                  ) : null}
                 </div>
-                <h3 className={styles.title}>{block.title}</h3>
-                <ul className={styles.bullets}>
-                  {block.bullets.map((bullet, j) => (
-                    <li key={j} className={styles.bullet}>
-                      <span className={styles.dot} aria-hidden="true" />
-                      <span>{bullet}</span>
-                    </li>
-                  ))}
-                </ul>
+
+                <div className={styles.content}>
+                  <h3 className={styles.title}>{block.title}</h3>
+                  <ul className={styles.bullets}>
+                    {block.bullets.map((bullet, j) => (
+                      <li key={j} className={styles.bullet}>
+                        <span className={styles.dot} aria-hidden="true" />
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </li>
             </ScrollReveal>
           ))}

@@ -1,8 +1,8 @@
 import type { ClientConfig } from "@/client.config";
+import { AboutVisual } from "./AboutVisual";
 import { CredentialsMarquee } from "./CredentialsMarquee";
 import { ScrollReveal } from "./ScrollReveal";
 import { StatStrip } from "./StatStrip";
-import { VideoTestimonial } from "./VideoTestimonial";
 import styles from "./AboutSection.module.css";
 
 interface Props {
@@ -11,8 +11,14 @@ interface Props {
 }
 
 export function AboutSection({ about, hiddenStatIndices }: Props) {
+  // Split body on blank line so we can render distinct paragraphs.
+  const paragraphs = about.body
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
   return (
-    <section className={styles.section} aria-labelledby="about-heading">
+    <section className={`light ${styles.section}`} aria-labelledby="about-heading">
       <div className="container">
         <ScrollReveal>
           <p className={styles.eyebrow}>{about.eyebrow}</p>
@@ -21,25 +27,34 @@ export function AboutSection({ about, hiddenStatIndices }: Props) {
           </h2>
         </ScrollReveal>
 
+        <div className={styles.split}>
+          <ScrollReveal delay={0.1} from="left">
+            <div className={styles.body}>
+              {paragraphs.map((p, i) => (
+                <p key={i} className={styles.paragraph}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={0.18} from="right">
+            <figure className={styles.visualFigure}>
+              <div className={styles.visualFrame}>
+                <AboutVisual />
+              </div>
+              <figcaption className={styles.visualCaption}>
+                {about.visualCaption}
+              </figcaption>
+            </figure>
+          </ScrollReveal>
+        </div>
+
         <ScrollReveal delay={0.1}>
           <div className={styles.stats}>
             <StatStrip stats={about.stats} hiddenIndices={hiddenStatIndices} />
           </div>
         </ScrollReveal>
-
-        <div className={styles.acts}>
-          {about.acts.map((act, i) => (
-            <ScrollReveal key={act.number} delay={0.1 + i * 0.08}>
-              <article className={styles.act}>
-                <div className={styles.actMeta}>
-                  <span className={styles.actLabel}>{act.label}</span>
-                </div>
-                <h3 className={styles.actTitle}>{act.title}</h3>
-                <p className={styles.actBody}>{act.body}</p>
-              </article>
-            </ScrollReveal>
-          ))}
-        </div>
       </div>
 
       <ScrollReveal delay={0.1}>
@@ -47,24 +62,6 @@ export function AboutSection({ about, hiddenStatIndices }: Props) {
           <CredentialsMarquee items={about.marqueeItems} />
         </div>
       </ScrollReveal>
-
-      <div className="container">
-        <ScrollReveal>
-          <h3 className={styles.videoHeading}>{about.videoSectionHeading}</h3>
-        </ScrollReveal>
-
-        <div className={styles.videos}>
-          {about.videos.map((video, i) => (
-            <ScrollReveal key={video.id} delay={0.1 + i * 0.1}>
-              <VideoTestimonial
-                youtubeId={video.youtubeId}
-                title={video.title}
-                thumbnail={video.thumbnail}
-              />
-            </ScrollReveal>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }

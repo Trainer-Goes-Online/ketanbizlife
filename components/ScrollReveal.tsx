@@ -3,29 +3,30 @@
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
+type From = "up" | "down" | "left" | "right";
+
 interface Props {
   children: ReactNode;
-  /** Delay before animation starts, in seconds */
   delay?: number;
-  /** Vertical translate distance in pixels (default 24) */
-  y?: number;
-  /** Duration in seconds (default 0.6) */
+  distance?: number;
   duration?: number;
-  /** Stagger between direct children when wrapping a group (used by parent variants) */
+  from?: From;
+  once?: boolean;
   className?: string;
   as?: "div" | "section" | "article" | "ul" | "ol" | "header" | "footer";
 }
 
 /**
- * Wraps children with a fade-up reveal triggered when 10% of the element enters
- * the viewport. Respects prefers-reduced-motion (renders without animation).
- * Performance: animates transform + opacity only — never triggers layout.
+ * Wraps children with a directional reveal triggered when the element enters
+ * the viewport. Respects prefers-reduced-motion. Uses transform + opacity only.
  */
 export function ScrollReveal({
   children,
   delay = 0,
-  y = 24,
-  duration = 0.6,
+  distance = 24,
+  duration = 0.7,
+  from = "up",
+  once = true,
   className,
   as = "div",
 }: Props) {
@@ -36,18 +37,32 @@ export function ScrollReveal({
     return <Tag className={className}>{children}</Tag>;
   }
 
+  const initial =
+    from === "up"
+      ? { opacity: 0, y: distance }
+      : from === "down"
+        ? { opacity: 0, y: -distance }
+        : from === "left"
+          ? { opacity: 0, x: -distance }
+          : { opacity: 0, x: distance };
+
+  const target =
+    from === "up" || from === "down"
+      ? { opacity: 1, y: 0 }
+      : { opacity: 1, x: 0 };
+
   const MotionTag = motion[as];
 
   return (
     <MotionTag
       className={className}
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-10% 0px -10% 0px" }}
+      initial={initial}
+      whileInView={target}
+      viewport={{ once, margin: "-8% 0px -8% 0px" }}
       transition={{
         duration,
         delay,
-        ease: [0.16, 1, 0.3, 1],
+        ease: [0.23, 1, 0.32, 1],
       }}
     >
       {children}

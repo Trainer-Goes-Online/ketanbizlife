@@ -1,7 +1,10 @@
 import type { ClientConfig } from "@/client.config";
+import { Icon, type IconName } from "./Icon";
 import { ScrollReveal } from "./ScrollReveal";
 import { SectionCTA } from "./SectionCTA";
 import styles from "./RajaProductSection.module.css";
+
+const blockIcons: IconName[] = ["compass", "shield", "spark", "globe"];
 
 interface Props {
   raja: ClientConfig["rajaProduct"];
@@ -17,22 +20,31 @@ export function RajaProductSection({ raja, checkoutHref }: Props) {
           <h2 id="raja-heading" className={styles.heading}>
             {raja.headline}
           </h2>
-          <p className={styles.openingLine}>
-            <em>{raja.openingLine}</em>
-          </p>
+          <p className={styles.openingLine}>{raja.openingLine}</p>
         </ScrollReveal>
 
         <div className={styles.blocks}>
           {raja.blocks.map((block, i) => (
-            <ScrollReveal key={i} delay={0.1 + i * 0.08}>
-              <article className={styles.block}>
-                <div className={styles.blockMeta}>
-                  <span className={styles.blockTag}>{block.tag}</span>
-                </div>
+            <article
+              key={i}
+              className={styles.block}
+              data-index={i}
+              style={{ "--block-index": i } as React.CSSProperties}
+            >
+              <div className={styles.blockMeta}>
+                <span className={styles.blockIcon} aria-hidden="true">
+                  <Icon name={blockIcons[i] ?? "spark"} size={22} />
+                </span>
+                <span className={styles.blockNumber} aria-hidden="true">
+                  0{i + 1}
+                </span>
+                <span className={styles.blockTag}>{block.tag}</span>
+              </div>
+              <div>
                 <h3 className={styles.blockTitle}>{block.title}</h3>
                 <p className={styles.blockBody}>{block.body}</p>
-              </article>
-            </ScrollReveal>
+              </div>
+            </article>
           ))}
         </div>
 

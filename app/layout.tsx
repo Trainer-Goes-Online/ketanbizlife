@@ -66,7 +66,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0f",
+  themeColor: "#050814",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -86,12 +86,6 @@ export default function RootLayout({
     >
       <body>
         {children}
-
-        {/* Razorpay checkout.js — lazy loaded so it doesn't block FCP */}
-        <Script
-          src="https://checkout.razorpay.com/v1/checkout.js"
-          strategy="lazyOnload"
-        />
 
         {/* GA4 — render only when measurement ID is set */}
         {gaMeasurementId ? (

@@ -8,7 +8,7 @@ interface Props {
 
 export function ScenesSection({ scenes }: Props) {
   return (
-    <section className={`alt ${styles.section}`} aria-labelledby="scenes-heading">
+    <section className={`light ${styles.section}`} aria-labelledby="scenes-heading">
       <div className="container-narrow">
         <ScrollReveal>
           <h2 id="scenes-heading" className={styles.heading}>
@@ -16,13 +16,13 @@ export function ScenesSection({ scenes }: Props) {
           </h2>
         </ScrollReveal>
 
-        <ul className={styles.list}>
+        <div className={styles.list}>
           {scenes.scenes.map((scene, i) => (
-            <ScrollReveal key={i} delay={0.1 + i * 0.1} as="ul">
-              <li className={styles.scene}>{scene}</li>
+            <ScrollReveal key={i} delay={0.08 + i * 0.08}>
+              <p className={styles.scene}>{scene}</p>
             </ScrollReveal>
           ))}
-        </ul>
+        </div>
 
         <ScrollReveal delay={0.2}>
           <p className={styles.outro}>{scenes.outro}</p>

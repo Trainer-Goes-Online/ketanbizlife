@@ -21,24 +21,32 @@ export interface UtmPayload {
   utm_term?: string;
 }
 
+export type CashfreeMode = "sandbox" | "production";
+
 export interface CreateOrderRequest {
   amount: number;
   currency: string;
+  customer: CustomerPayload;
+  /** IDs of selected checkout bumps (server resolves to titles/prices) */
+  selectedBumpIds: string[];
+  utm: UtmPayload;
 }
 
 export interface CreateOrderResponse {
   orderId: string;
+  paymentSessionId: string;
   amount: number;
   currency: string;
-  keyId: string;
+  mode: CashfreeMode;
 }
 
 export interface VerifyPaymentRequest {
   orderId: string;
-  paymentId: string;
-  signature: string;
   customer: CustomerPayload;
   utm: UtmPayload;
+  /** IDs of selected checkout bumps (server resolves to titles/prices) */
+  selectedBumpIds: string[];
+  grandTotal: number;
   /** Optional Facebook click-id and browser-id cookies (forwarded for CAPI) */
   fbc?: string;
   fbp?: string;

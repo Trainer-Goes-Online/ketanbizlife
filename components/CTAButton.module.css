@@ -1,4 +1,5 @@
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -8,37 +9,63 @@
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   line-height: 1;
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: -0.005em;
   border-radius: var(--radius-md);
-  border: 1.5px solid transparent;
+  border: 1px solid transparent;
   cursor: pointer;
   text-align: center;
-  transition:
-    transform var(--duration-base) var(--ease-out-soft),
-    box-shadow var(--duration-base) var(--ease-out-soft),
-    background-color var(--duration-fast) ease,
-    border-color var(--duration-fast) ease;
-  will-change: transform;
-  min-height: 48px;
   text-wrap: balance;
+  min-height: 48px;
+  isolation: isolate;
+  transition:
+    transform var(--duration-press) var(--ease-out-strong),
+    background-color var(--duration-fast) var(--ease-out-strong),
+    border-color var(--duration-fast) var(--ease-out-strong),
+    box-shadow var(--duration-base) var(--ease-out-strong);
+  will-change: transform;
 }
+
+/* Active press. Universal feedback, Emil principle. */
+.btn:active {
+  transform: scale(0.97);
+}
+
+/* ============================================================================
+   Primary. Solid accent, inner hairline, glow on hover.
+   ============================================================================ */
 
 .primary {
   background-color: var(--accent);
   color: var(--text-on-accent);
+  box-shadow:
+    var(--shadow-inner-hairline),
+    0 1px 0 rgba(0, 0, 0, 0.2),
+    0 6px 16px rgba(37, 99, 235, 0.25);
 }
 
-.primary:hover,
+@media (hover: hover) and (pointer: fine) {
+  .primary:hover {
+    background-color: var(--accent-hover);
+    box-shadow:
+      var(--shadow-inner-hairline),
+      0 1px 0 rgba(0, 0, 0, 0.2),
+      0 12px 32px rgba(37, 99, 235, 0.4),
+      var(--shadow-glow);
+  }
+}
+
 .primary:focus-visible {
   background-color: var(--accent-hover);
-  transform: translateY(-1px) scale(1.015);
-  box-shadow: var(--shadow-glow);
 }
 
+/* Active state overrides hover lift but keeps the press scale. */
 .primary:active {
-  transform: translateY(0) scale(1);
-  box-shadow: var(--shadow-sm);
+  background-color: var(--accent-deep);
 }
+
+/* ============================================================================
+   Secondary. Outlined, fills on hover.
+   ============================================================================ */
 
 .secondary {
   background-color: transparent;
@@ -46,36 +73,60 @@
   border-color: var(--border-strong);
 }
 
-.secondary:hover,
+@media (hover: hover) and (pointer: fine) {
+  .secondary:hover {
+    background-color: var(--bg-card);
+    border-color: var(--accent);
+  }
+}
+
 .secondary:focus-visible {
   background-color: var(--bg-card);
   border-color: var(--accent);
 }
 
+/* ============================================================================
+   Size variants
+   ============================================================================ */
+
 .large {
   padding: var(--space-5) var(--space-8);
   font-size: var(--text-lg);
   min-height: 56px;
+  border-radius: var(--radius-lg);
 }
 
 .label {
   display: inline-block;
+  position: relative;
+  z-index: 1;
 }
 
 .arrow {
   display: inline-block;
-  font-size: 1.1em;
-  transition: transform var(--duration-base) var(--ease-out-soft);
+  font-size: 1.05em;
+  position: relative;
+  z-index: 1;
+  transition: transform var(--duration-base) var(--ease-out-strong);
 }
 
-.btn:hover .arrow,
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover .arrow {
+    transform: translateX(4px);
+  }
+}
+
 .btn:focus-visible .arrow {
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:disabled:active {
+  transform: none;
 }

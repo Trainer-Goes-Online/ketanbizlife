@@ -34,13 +34,13 @@ export function TransformationTable({ transformation }: Props) {
                     <span className={styles.iconOld} aria-hidden="true">
                       ×
                     </span>
-                    <span>{row.old}</span>
+                    <span className={styles.cellText}>{row.old}</span>
                   </div>
                   <div className={styles.cellNext} role="cell">
                     <span className={styles.iconNext} aria-hidden="true">
                       ✓
                     </span>
-                    <span>{row.next}</span>
+                    <span className={styles.cellText}>{row.next}</span>
                   </div>
                 </div>
               </ScrollReveal>

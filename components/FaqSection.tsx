@@ -13,7 +13,7 @@ export function FaqSection({ faq }: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className={styles.section} aria-labelledby="faq-heading">
+    <section className={`light ${styles.section}`} aria-labelledby="faq-heading">
       <div className="container-narrow">
         <ScrollReveal>
           <h2 id="faq-heading" className={styles.heading}>
@@ -37,19 +37,20 @@ export function FaqSection({ faq }: Props) {
                   >
                     <span className={styles.question}>{item.question}</span>
                     <span className={styles.icon} aria-hidden="true">
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M5 12h14M12 5v14" className={styles.iconVertical} />
-                      </svg>
+                      <span className={styles.iconBar} />
+                      <span className={`${styles.iconBar} ${styles.iconBarV}`} />
                     </span>
                   </button>
                   <div
                     id={`faq-panel-${i}`}
                     role="region"
                     aria-labelledby={`faq-trigger-${i}`}
+                    aria-hidden={!isOpen}
                     className={styles.panel}
-                    hidden={!isOpen}
                   >
-                    <p className={styles.answer}>{item.answer}</p>
+                    <div className={styles.panelInner}>
+                      <p className={styles.answer}>{item.answer}</p>
+                    </div>
                   </div>
                 </li>
               </ScrollReveal>

@@ -1,7 +1,10 @@
 import type { ClientConfig } from "@/client.config";
+import { Icon, type IconName } from "./Icon";
 import { ScrollReveal } from "./ScrollReveal";
 import { SectionCTA } from "./SectionCTA";
 import styles from "./WhoSection.module.css";
+
+const segmentIcons: IconName[] = ["factory", "container"];
 
 interface Props {
   who: ClientConfig["who"];
@@ -24,8 +27,8 @@ export function WhoSection({ who, checkoutHref }: Props) {
             <ScrollReveal key={segment.badge} delay={0.1 + i * 0.1}>
               <article className={styles.card}>
                 <header className={styles.cardHead}>
-                  <span className={styles.icon} aria-hidden="true">
-                    {segment.icon}
+                  <span className={styles.iconWrap} aria-hidden="true">
+                    <Icon name={segmentIcons[i] ?? "factory"} size={26} />
                   </span>
                   <span className={styles.badge}>{segment.badge}</span>
                 </header>

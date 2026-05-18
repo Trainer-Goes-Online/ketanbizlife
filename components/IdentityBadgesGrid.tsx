@@ -10,7 +10,7 @@ interface Props {
 
 export function IdentityBadgesGrid({ identity, checkoutHref }: Props) {
   return (
-    <section className={styles.section} aria-labelledby="identity-heading">
+    <section className={`light ${styles.section}`} aria-labelledby="identity-heading">
       <div className="container">
         <ScrollReveal>
           <h2 id="identity-heading" className={styles.heading}>

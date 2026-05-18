@@ -11,17 +11,29 @@ interface Props {
 }
 
 /**
- * Embed-on-click YouTube player. Renders a static thumbnail with a play overlay
- * until the user clicks — then swaps in the iframe. Saves significant FCP cost
- * vs auto-loading the iframe.
+ * 16:9 embed-on-click YouTube player. Renders a video-player-style placeholder
+ * with progress bar, play button, label, and faux duration when no youtubeId
+ * is set. When a real ID is provided, shows the thumbnail until clicked then
+ * swaps in the iframe.
  */
 export function VideoTestimonial({ youtubeId, title, thumbnail }: Props) {
   const [loaded, setLoaded] = useState(false);
 
   if (!youtubeId) {
     return (
-      <div className={styles.placeholder} aria-label={`${title} — coming soon`}>
-        <span className={styles.placeholderText}>Coming soon</span>
+      <div
+        className={styles.placeholder}
+        aria-label={`${title} — coming soon`}
+        role="img"
+      >
+        <span className={styles.placeholderLabel}>Coming Soon</span>
+        <span className={styles.placeholderPlay} aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </span>
+        <span className={styles.placeholderText}>{title}</span>
+        <span className={styles.placeholderDuration}>0:42</span>
       </div>
     );
   }
@@ -37,7 +49,6 @@ export function VideoTestimonial({ youtubeId, title, thumbnail }: Props) {
         onClick={() => setLoaded(true)}
         aria-label={`Play video: ${title}`}
       >
-        {/* Using a plain img with eager-lazy because YouTube i.ytimg.com is not configured in next/image domains by default */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={thumbnailUrl}
@@ -46,7 +57,7 @@ export function VideoTestimonial({ youtubeId, title, thumbnail }: Props) {
           className={styles.thumb}
         />
         <span className={styles.playBtn} aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
             <path d="M8 5v14l11-7z" />
           </svg>
         </span>
