@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getCashfreeMode,
   getCashfreeOrderPayments,
   getCashfreeOrderStatus,
 } from "@/lib/cashfree";
@@ -144,10 +145,20 @@ export async function POST(
     timezone: clientConfig.event.timezone,
   });
 
-  const capiAllowed = clientConfig.capi.enabled && isProductionHost(request);
+  // CAPI fires only for REAL conversions: production domain + production
+  // Cashfree mode + amount > ₹1 (skip test charges). Any single condition
+  // missing blocks the fire so Meta never sees sandbox / test traffic.
+  const cashfreeMode = getCashfreeMode();
+  const onProductionDomain = isProductionHost(request);
+  const isRealCharge = serverGrandTotal > 1;
+  const capiAllowed =
+    clientConfig.capi.enabled &&
+    onProductionDomain &&
+    cashfreeMode === "production" &&
+    isRealCharge;
   if (clientConfig.capi.enabled && !capiAllowed) {
     console.log(
-      `[verify-payment] CAPI skipped — host=${request.headers.get("host")} != ${clientConfig.brand.domain}`,
+      `[verify-payment] CAPI skipped — host=${request.headers.get("host")} (prod=${onProductionDomain}) mode=${cashfreeMode} amount=${serverGrandTotal}`,
     );
   }
   const capiPromise = capiAllowed

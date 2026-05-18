@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   base64UrlDecode,
+  getCashfreeMode,
   verifyCashfreeWebhookSignature,
 } from "@/lib/cashfree";
 import { firePabblyWebhook, type PabblyBumpItem } from "@/lib/pabbly";
@@ -205,10 +206,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     timezone: clientConfig.event.timezone,
   });
 
-  const capiAllowed = clientConfig.capi.enabled && isProductionHost(request);
+  // CAPI fires only for REAL conversions: production domain + production
+  // Cashfree mode + amount > ₹1 (skip test charges).
+  const cashfreeMode = getCashfreeMode();
+  const onProductionDomain = isProductionHost(request);
+  const isRealCharge = grandTotal > 1;
+  const capiAllowed =
+    clientConfig.capi.enabled &&
+    onProductionDomain &&
+    cashfreeMode === "production" &&
+    isRealCharge;
   if (clientConfig.capi.enabled && !capiAllowed) {
     console.log(
-      `[cashfree-webhook] CAPI skipped — host=${request.headers.get("host")} != ${clientConfig.brand.domain}`,
+      `[cashfree-webhook] CAPI skipped — host=${request.headers.get("host")} (prod=${onProductionDomain}) mode=${cashfreeMode} amount=${grandTotal}`,
     );
   }
   const capiPromise = capiAllowed

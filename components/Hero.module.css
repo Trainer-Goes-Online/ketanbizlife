@@ -413,10 +413,16 @@
 }
 
 .portraitTopRow {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .portraitTopRow {
+    display: flex;
+  }
 }
 
 .portraitBrand {
@@ -487,11 +493,87 @@
   overflow: hidden;
   background-color: var(--bg-deeper);
   isolation: isolate;
+  display: none;
 }
 
 @media (min-width: 768px) {
   .portraitImageFrame {
+    display: block;
     aspect-ratio: 4 / 5;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   Mobile-only landscape hero image — replaces the portrait frame at <768px.
+   The artwork already carries the brand/role lockup so no overlays needed.
+   ---------------------------------------------------------------------------- */
+
+.mobileImageFrame {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: var(--bg-deeper);
+  isolation: isolate;
+  line-height: 0;
+}
+
+.mobileImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 768px) {
+  .mobileImageFrame {
+    display: none;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   Mobile-only solution copy — sits below the image, inside the card.
+   Two-line punch summary. Hidden on tablet+desktop.
+   ---------------------------------------------------------------------------- */
+
+.mobileSolutionBelow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: center;
+  padding-block: var(--space-2) var(--space-1);
+}
+
+.mobileSolutionLead {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: var(--weight-bold);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+.mobileSolutionAccent {
+  color: var(--accent-hover);
+}
+
+.mobileSolutionTail {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  font-weight: var(--weight-medium);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  text-wrap: balance;
+}
+
+@media (min-width: 768px) {
+  .mobileSolutionBelow {
+    display: none;
   }
 }
 
@@ -606,35 +688,6 @@
     font-style: italic;
     font-size: var(--text-xs);
     color: var(--text-secondary);
-  }
-}
-
-/* Mobile-only solution copy — sits between LIVE badge and the photo
-   inside the portrait card. Hidden at desktop because the overlay on
-   the image already carries the same message. */
-.mobileSolutionAbove {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  line-height: var(--leading-snug);
-  letter-spacing: -0.005em;
-  color: var(--text-primary);
-  text-align: center;
-  text-wrap: balance;
-  margin: 0;
-}
-
-.mobileSolutionAbove em {
-  display: block;
-  margin-top: var(--space-2);
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
-
-@media (min-width: 768px) {
-  .mobileSolutionAbove {
-    display: none;
   }
 }
 

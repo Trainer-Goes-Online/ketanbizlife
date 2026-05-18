@@ -17,7 +17,7 @@ interface Props {
 }
 
 const mastheadItems = [
-  "Ketan BizLife · Issue 03",
+  "Ketan BizLife",
   "For Indian Manufacturers, Traders & Sourcing Agents Doing Goods Export",
   "The Indian Export Insider Workshop",
   "Live · Sunday 31st May 2026 · 10:45 AM IST",
@@ -29,11 +29,6 @@ interface InfoCard {
   label: string;
   value: string;
 }
-
-const MOBILE_SOLUTION_COPY =
-  "2 proven buyer-finding systems that can help you get genuine international orders.";
-const MOBILE_SOLUTION_HINDI =
-  "Wahi system jo Mein 10+ saal se 2 export brands ke saath use kar raha hoon.";
 
 export function Hero({ hero, event, checkoutHref }: Props) {
   const infoCards: InfoCard[] = [
@@ -71,6 +66,33 @@ export function Hero({ hero, event, checkoutHref }: Props) {
           {/* Portrait card — solo on the right column at desktop, between
               headline and info grid on mobile. */}
           <figure className={styles.portraitCard}>
+            {/* Mobile-only: landscape hero image sits at the very top of the
+                card; the new artwork already carries the name/role lockup. */}
+            <div className={styles.mobileImageFrame}>
+              <Image
+                src="/ketan-hero-new.png"
+                alt="Ketan Vadariya — The Export Unstuck"
+                width={1456}
+                height={1092}
+                priority
+                sizes="(max-width: 767px) 100vw, 480px"
+                className={styles.mobileImage}
+              />
+            </div>
+
+            {/* Mobile-only solution copy — sits below the image, inside the
+                card. Two-line punch summary of the offer. */}
+            <div className={styles.mobileSolutionBelow}>
+              <p className={styles.mobileSolutionLead}>
+                <span className={styles.mobileSolutionAccent}>2 proven</span>{" "}
+                buyer-finding systems
+              </p>
+              <p className={styles.mobileSolutionTail}>
+                to land genuine international orders.
+              </p>
+            </div>
+
+            {/* Desktop-only structure follows. */}
             <div className={styles.portraitTopRow}>
               <span className={styles.portraitBrand}>KETAN BIZLIFE</span>
               <span className={styles.portraitLive}>
@@ -85,11 +107,6 @@ export function Hero({ hero, event, checkoutHref }: Props) {
             <p className={styles.portraitTagline}>
               Every Indian Exporter Who Cracked Their First International
               Order Had a System. Do You?
-            </p>
-
-            <p className={styles.mobileSolutionAbove}>
-              {MOBILE_SOLUTION_COPY}
-              <em>{MOBILE_SOLUTION_HINDI}</em>
             </p>
 
             <div className={styles.portraitImageFrame}>
