@@ -165,8 +165,12 @@ export async function POST(
       })
     : Promise.resolve();
 
-  void pabblyPromise;
-  void capiPromise;
+  // Critical: on Vercel serverless, fire-and-forget promises are killed when
+  // the function returns. We MUST await before responding so the network
+  // round-trips actually complete. Both fires are internally try/catch'd and
+  // have 5s AbortController timeouts, so neither can hang verify-payment
+  // longer than the Vercel function limit.
+  await Promise.all([pabblyPromise, capiPromise]);
 
   return NextResponse.json({ success: true, paymentId });
 }

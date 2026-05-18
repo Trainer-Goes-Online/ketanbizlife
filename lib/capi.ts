@@ -33,7 +33,9 @@ export async function fireMetaCapiPurchase(args: {
 }): Promise<void> {
   const pixelId = process.env.META_PIXEL_ID;
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
-
+  console.log(
+    `[capi] fire start event=${args.eventName} paymentId=${args.paymentId} value=${args.value} hasCreds=${Boolean(pixelId && accessToken)}`,
+  );
   if (!pixelId || !accessToken) {
     console.warn(
       "[capi] META_PIXEL_ID or META_CAPI_ACCESS_TOKEN not set — skipping CAPI fire",
@@ -72,19 +74,31 @@ export async function fireMetaCapiPurchase(args: {
   };
   if (Object.keys(customData).length > 0) event.custom_data = customData;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ data: [event] }),
+      signal: controller.signal,
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "<no body>");
       console.warn(
         `[capi] Meta returned ${res.status} for payment ${args.paymentId}: ${text}`,
       );
+    } else {
+      console.log(
+        `[capi] Meta CAPI OK ${res.status} for payment ${args.paymentId}`,
+      );
     }
   } catch (err) {
-    console.warn("[capi] Meta CAPI fire failed", err);
+    console.warn(
+      `[capi] Meta CAPI fire failed for payment ${args.paymentId}:`,
+      err instanceof Error ? err.message : err,
+    );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

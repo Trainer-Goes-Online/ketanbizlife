@@ -31,6 +31,9 @@ export async function firePabblyWebhook(args: {
   timezone: string;
 }): Promise<void> {
   const url = process.env.PABBLY_WEBHOOK_URL;
+  console.log(
+    `[pabbly] fire start orderId=${args.orderId} amount=${args.amount} bumpItems=${args.bumpItems.length} hasUrl=${Boolean(url)}`,
+  );
   if (!url) {
     console.warn("[pabbly] PABBLY_WEBHOOK_URL not set — skipping webhook fire");
     return;
@@ -100,18 +103,31 @@ export async function firePabblyWebhook(args: {
     utm_term: args.utm.utm_term ?? "",
   };
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
     if (!res.ok) {
+      const text = await res.text().catch(() => "<no body>");
       console.warn(
-        `[pabbly] webhook returned ${res.status} — payload sent for order ${args.orderId}`,
+        `[pabbly] webhook returned ${res.status} for order ${args.orderId}: ${text}`,
+      );
+    } else {
+      console.log(
+        `[pabbly] webhook OK ${res.status} for order ${args.orderId}`,
       );
     }
   } catch (err) {
-    console.warn("[pabbly] webhook failed", err);
+    console.warn(
+      `[pabbly] webhook failed for order ${args.orderId}:`,
+      err instanceof Error ? err.message : err,
+    );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

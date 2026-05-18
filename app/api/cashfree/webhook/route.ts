@@ -226,8 +226,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       })
     : Promise.resolve();
 
-  void pabblyPromise;
-  void capiPromise;
+  // Critical: on Vercel serverless, fire-and-forget promises are killed when
+  // the function returns. Await both before responding. Each has its own
+  // 5s timeout internally so a slow Pabbly/Meta can't hang the webhook past
+  // Cashfree's expected ack window.
+  await Promise.all([pabblyPromise, capiPromise]);
 
   return NextResponse.json({ received: true, acted: true });
 }
