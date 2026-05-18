@@ -354,7 +354,7 @@ export const clientConfig: ClientConfig = {
   brand: {
     name: "Ketan BizLife",
     tagline: "Export Unstuck · Learn · Connect · Grow",
-    domain: "export.ketanbizlife.com",
+    domain: "export.ketanbizlife.in",
     region: "India",
     language: "Hindi-English",
     currency: "INR",

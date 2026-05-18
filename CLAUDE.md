@@ -4,7 +4,7 @@ A high-conversion landing page funnel for **Ketan BizLife**, an Indian export-co
 
 ## Client context
 
-- **Brand**: Ketan BizLife (`lp.ketanbizlife.com`). Founder runs two export brands (BizLife, IJARO) plus a financial advisory firm.
+- **Brand**: Ketan BizLife (`export.ketanbizlife.in`). Founder runs two export brands (BizLife, IJARO) plus a financial advisory firm.
 - **Offer**: ₹99 webinar (anchor ₹499) + optional ₹199 / ₹499-bundle checkout bumps + 5 included bonuses.
 - **Funnel**: `/` redirects → `/export-buyers` (LP) → `/checkout` → Cashfree modal (overlay) → `/thank-you`.
 - **Payments**: Cashfree (sandbox/production toggle via `CASHFREE_API_MODE`). Order data is forwarded to a Pabbly Connect webhook and to Meta CAPI (server-side `sales` event).
