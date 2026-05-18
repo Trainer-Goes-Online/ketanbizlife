@@ -13,7 +13,7 @@ interface Props {
 
 export function WhoSection({ who, checkoutHref }: Props) {
   return (
-    <section className={styles.section} aria-labelledby="who-heading">
+    <section className={`light ${styles.section}`} aria-labelledby="who-heading">
       <div className="container">
         <ScrollReveal>
           <h2 id="who-heading" className={styles.heading}>

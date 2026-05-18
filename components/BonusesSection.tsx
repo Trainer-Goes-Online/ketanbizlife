@@ -5,6 +5,10 @@ import styles from "./BonusesSection.module.css";
 
 interface Props {
   bonuses: ClientConfig["bonuses"];
+  /** Section background variant. Defaults to "alt" so existing callers
+   *  (e.g. /checkout) keep their dark-blue look. The LP overrides to
+   *  "light" to participate in its alternating white/blue rhythm. */
+  variant?: "alt" | "light";
 }
 
 /** Maps the bonus card variant key to its image in /public. */
@@ -16,10 +20,10 @@ const BONUS_IMAGES: Record<string, string> = {
   recording: "/5.webp",
 };
 
-export function BonusesSection({ bonuses }: Props) {
+export function BonusesSection({ bonuses, variant = "alt" }: Props) {
   return (
     <section
-      className={`alt ${styles.section}`}
+      className={`${variant} ${styles.section}`}
       aria-labelledby="bonuses-heading"
     >
       <div className="container">

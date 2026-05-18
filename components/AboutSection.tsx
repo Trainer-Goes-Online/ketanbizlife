@@ -18,7 +18,7 @@ export function AboutSection({ about, hiddenStatIndices }: Props) {
     .filter(Boolean);
 
   return (
-    <section className={`light ${styles.section}`} aria-labelledby="about-heading">
+    <section className={`alt ${styles.section}`} aria-labelledby="about-heading">
       <div className="container">
         <ScrollReveal>
           <p className={styles.eyebrow}>{about.eyebrow}</p>

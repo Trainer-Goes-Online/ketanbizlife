@@ -71,6 +71,7 @@ export default async function FunnelPage({ searchParams }: PageProps) {
 
       <main>
         <ScenesSection scenes={clientConfig.scenes} />
+        <TestimonialsSection testimonials={clientConfig.testimonials} />
         <WhoSection who={clientConfig.who} checkoutHref={checkoutHref} />
         <AgendaSection
           agenda={clientConfig.agenda}
@@ -81,12 +82,11 @@ export default async function FunnelPage({ searchParams }: PageProps) {
           identity={clientConfig.identityBadges}
           checkoutHref={checkoutHref}
         />
-        <BonusesSection bonuses={clientConfig.bonuses} />
+        <BonusesSection bonuses={clientConfig.bonuses} variant="light" />
         <AboutSection
           about={clientConfig.about}
           hiddenStatIndices={hiddenStatIndices}
         />
-        <TestimonialsSection testimonials={clientConfig.testimonials} />
         <GuaranteeSection
           guarantee={clientConfig.guarantee}
           checkoutHref={checkoutHref}

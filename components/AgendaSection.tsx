@@ -10,7 +10,7 @@ interface Props {
 
 export function AgendaSection({ agenda, checkoutHref }: Props) {
   return (
-    <section className={`light ${styles.section}`} aria-labelledby="agenda-heading">
+    <section className={`alt ${styles.section}`} aria-labelledby="agenda-heading">
       <div className="container">
         <ScrollReveal>
           <h2 id="agenda-heading" className={styles.heading}>

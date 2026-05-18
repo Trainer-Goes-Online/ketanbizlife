@@ -8,7 +8,7 @@ interface Props {
 
 export function TransformationTable({ transformation }: Props) {
   return (
-    <section className={`alt ${styles.section}`} aria-labelledby="transformation-heading">
+    <section className={`light ${styles.section}`} aria-labelledby="transformation-heading">
       <div className="container">
         <ScrollReveal>
           <h2 id="transformation-heading" className={styles.heading}>
