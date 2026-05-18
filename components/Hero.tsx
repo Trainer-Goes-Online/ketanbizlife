@@ -30,6 +30,11 @@ interface InfoCard {
   value: string;
 }
 
+const MOBILE_SOLUTION_COPY =
+  "2 proven buyer-finding systems that can help you get genuine international orders.";
+const MOBILE_SOLUTION_HINDI =
+  "Wahi system jo Mein 10+ saal se 2 export brands ke saath use kar raha hoon.";
+
 export function Hero({ hero, event, checkoutHref }: Props) {
   const infoCards: InfoCard[] = [
     { icon: "calendar", label: "Date", value: "Sunday, 31st May" },
@@ -80,6 +85,11 @@ export function Hero({ hero, event, checkoutHref }: Props) {
             <p className={styles.portraitTagline}>
               Every Indian Exporter Who Cracked Their First International
               Order Had a System. Do You?
+            </p>
+
+            <p className={styles.mobileSolutionAbove}>
+              {MOBILE_SOLUTION_COPY}
+              <em>{MOBILE_SOLUTION_HINDI}</em>
             </p>
 
             <div className={styles.portraitImageFrame}>
@@ -164,15 +174,23 @@ export function Hero({ hero, event, checkoutHref }: Props) {
                 {hero.primaryCtaText}
               </CTAButton>
               <TrustLine text={hero.trustLine} refundLine={null} />
-              <p className={styles.guaranteeLine}>
-                <span className={styles.guaranteeCheck} aria-hidden="true">
-                  <Icon name="shield" size={14} />
-                </span>
-                <span>
-                  <strong>100% Money-Back Guarantee.</strong> ₹99 wapas even
-                  after watching the entire webinar.
-                </span>
-              </p>
+
+              <div className={styles.withoutBlock}>
+                <p className={styles.withoutKicker}>{hero.withoutHeading}</p>
+                <ul
+                  className={styles.withoutStrip}
+                  aria-label={hero.withoutHeading}
+                >
+                  {hero.withoutItems.map((item) => (
+                    <li key={item} className={styles.withoutChip}>
+                      <span className={styles.withoutIcon} aria-hidden="true">
+                        ×
+                      </span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>

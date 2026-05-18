@@ -101,7 +101,14 @@
 }
 
 .copyBottom {
-  gap: var(--space-5);
+  gap: var(--space-4);
+}
+
+@media (min-width: 1024px) {
+  /* Looser on desktop since countdown is removed from copyBottom there. */
+  .copyBottom {
+    gap: var(--space-5);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -113,6 +120,8 @@
       "stat       portrait"
       "copyBottom portrait"
       "infoGrid   portrait";
+    /* Restored to --space-5 (original) since the countdown is removed
+       from the left column on desktop and the column has room again. */
     gap: var(--space-5) var(--space-12);
     align-items: start;
   }
@@ -233,12 +242,10 @@
    Countdown row — centered on mobile, left-aligned on desktop
    ---------------------------------------------------------------------------- */
 
+/* In-hero countdown is fully hidden — the FloatingCountdown sticky bar
+   at the bottom of the viewport carries this role on all viewports. */
 .countdownWrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
+  display: none;
 }
 
 .eventInLabel {
@@ -250,15 +257,6 @@
   color: var(--text-muted);
 }
 
-@media (min-width: 1024px) {
-  .countdownWrap {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-4);
-    width: auto;
-    padding-block: var(--space-2);
-  }
-}
 
 /* ----------------------------------------------------------------------------
    CTA row + trust + guarantee
@@ -278,34 +276,89 @@
   }
 }
 
-.guaranteeLine {
+/* ----------------------------------------------------------------------------
+   Failed-tactic chip strip — premium pill row sitting below the trust line.
+   Led by a small uppercase kicker so the chips don't appear cold.
+   ---------------------------------------------------------------------------- */
+
+.withoutBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: var(--space-1);
+}
+
+.withoutKicker {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.withoutStrip {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  justify-content: center;
+}
+
+.withoutChip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  background-color: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
   font-family: var(--font-body);
-  font-size: var(--text-sm);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.005em;
   color: var(--text-secondary);
-  line-height: var(--leading-snug);
-  max-width: 540px;
-  text-align: left;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.guaranteeLine strong {
-  color: var(--success);
-  font-weight: var(--weight-semibold);
-}
-
-.guaranteeCheck {
+.withoutIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 14px;
+  height: 14px;
   border-radius: var(--radius-full);
-  background-color: rgba(16, 185, 129, 0.14);
-  color: var(--success);
+  background-color: rgba(239, 68, 68, 0.16);
+  color: #ff8a8a;
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  line-height: 1;
   flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .withoutBlock {
+    align-items: flex-start;
+  }
+
+  .withoutKicker {
+    text-align: left;
+  }
+
+  .withoutStrip {
+    justify-content: flex-start;
+    gap: 8px;
+  }
 }
 
 /* ============================================================================
@@ -446,6 +499,34 @@
   object-fit: cover;
   object-position: center top;
   filter: saturate(0.95) contrast(1.02) brightness(0.95);
+  transition:
+    transform var(--duration-medium) var(--ease-out-strong),
+    filter var(--duration-medium) var(--ease-out-strong);
+}
+
+/* Subtle hover lift on the whole portrait card and a gentle zoom on the
+   photo. Restrained — premium, not flashy. */
+@media (hover: hover) and (pointer: fine) {
+  .portraitCard {
+    transition:
+      border-color var(--duration-medium) var(--ease-out-strong),
+      box-shadow var(--duration-medium) var(--ease-out-strong),
+      transform var(--duration-medium) var(--ease-out-strong);
+  }
+
+  .portraitCard:hover {
+    border-color: rgba(120, 160, 255, 0.45);
+    transform: translateY(-3px);
+    box-shadow:
+      var(--shadow-inner-hairline),
+      0 28px 64px rgba(0, 0, 0, 0.6),
+      0 0 40px rgba(47, 107, 255, 0.22);
+  }
+
+  .portraitCard:hover .portraitImage {
+    transform: scale(1.025);
+    filter: saturate(1) contrast(1.05) brightness(1);
+  }
 }
 
 .portraitImageVignette {
@@ -525,6 +606,35 @@
     font-style: italic;
     font-size: var(--text-xs);
     color: var(--text-secondary);
+  }
+}
+
+/* Mobile-only solution copy — sits between LIVE badge and the photo
+   inside the portrait card. Hidden at desktop because the overlay on
+   the image already carries the same message. */
+.mobileSolutionAbove {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  text-align: center;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.mobileSolutionAbove em {
+  display: block;
+  margin-top: var(--space-2);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+@media (min-width: 768px) {
+  .mobileSolutionAbove {
+    display: none;
   }
 }
 

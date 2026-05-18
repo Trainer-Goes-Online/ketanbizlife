@@ -3,7 +3,7 @@ import {
   getCashfreeOrderPayments,
   getCashfreeOrderStatus,
 } from "@/lib/cashfree";
-import { firePabblyWebhook } from "@/lib/pabbly";
+import { firePabblyWebhook, type PabblyBumpItem } from "@/lib/pabbly";
 import { fireMetaCapiPurchase } from "@/lib/capi";
 import { tryClaimOrder } from "@/lib/dedup";
 import { isProductionHost } from "@/lib/env";
@@ -29,6 +29,7 @@ function extractClientIp(request: Request): string {
 function resolveBumps(selectedBumpIds: string[]): {
   bumpsLine: string;
   bumpsTotal: number;
+  bumpItems: PabblyBumpItem[];
 } {
   const matched = selectedBumpIds
     .map((id) => clientConfig.checkout.bumps.find((b) => b.id === id))
@@ -39,7 +40,12 @@ function resolveBumps(selectedBumpIds: string[]): {
       ? matched.map((b) => `${b.title} (₹${b.price})`).join("; ")
       : "none";
   const bumpsTotal = matched.reduce((sum, b) => sum + b.price, 0);
-  return { bumpsLine, bumpsTotal };
+  const bumpItems: PabblyBumpItem[] = matched.map((b) => ({
+    id: b.id,
+    title: b.title,
+    price: b.price,
+  }));
+  return { bumpsLine, bumpsTotal, bumpItems };
 }
 
 export async function POST(
@@ -116,7 +122,7 @@ export async function POST(
 
   // ---- Fire downstream non-blocking integrations ----
   const safeBumpIds = Array.isArray(selectedBumpIds) ? selectedBumpIds : [];
-  const { bumpsLine, bumpsTotal } = resolveBumps(safeBumpIds);
+  const { bumpsLine, bumpsTotal, bumpItems } = resolveBumps(safeBumpIds);
   const basePrice = clientConfig.pricing.price;
   // Trust the server-side resolved total over anything from the client.
   const serverGrandTotal = basePrice + bumpsTotal;
@@ -133,6 +139,7 @@ export async function POST(
     basePrice,
     bumpsTotal,
     bumps: bumpsLine,
+    bumpItems,
     currency: clientConfig.pricing.currency,
     timezone: clientConfig.event.timezone,
   });

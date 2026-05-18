@@ -2,6 +2,17 @@
   position: relative;
 }
 
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+  text-align: center;
+  margin-bottom: var(--space-3);
+}
+
 .heading {
   font-size: var(--text-3xl);
   text-align: center;
@@ -12,18 +23,57 @@
   margin-inline: auto;
 }
 
+/* ----------------------------------------------------------------------------
+   Mobile: horizontal scroll-snap carousel. Each card takes 80% of the
+   container width, leaving ~20% peek of the next card as a swipe cue.
+   Native touch scroll, snap to center, no JS dependency.
+   ---------------------------------------------------------------------------- */
+
 .grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-5);
-  max-width: 1120px;
-  margin-inline: auto;
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Bleed slightly past container so card peek looks natural at edges. */
+  padding: var(--space-1) var(--space-2) var(--space-3);
+  margin-inline: calc(-1 * var(--space-2));
 }
 
+.grid::-webkit-scrollbar {
+  display: none;
+}
+
+.grid > * {
+  flex: 0 0 80%;
+  max-width: 320px;
+  scroll-snap-align: center;
+}
+
+/* Tablet+: static grid layout. */
 @media (min-width: 640px) {
   .grid {
+    display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-6);
+    overflow: visible;
+    padding: 0;
+    margin-inline: 0;
+    max-width: 1120px;
+    margin-inline: auto;
+  }
+
+  .grid > * {
+    flex: initial;
+    max-width: none;
+  }
+
+  /* Videos flagged mobileOnly are hidden in tablet + desktop grids. */
+  .mobileOnly {
+    display: none;
   }
 }
 

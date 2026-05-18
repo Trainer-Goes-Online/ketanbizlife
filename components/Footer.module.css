@@ -1,11 +1,19 @@
 .footer {
-  padding-block: var(--space-12) var(--space-6);
-  /* Bottom space for the sticky MobileCTABar so the disclaimer isn't covered.
-     Reset to var(--space-6) at >=1024px where the bar is hidden. */
-  padding-bottom: clamp(96px, 16vw, 120px);
+  padding-block: var(--space-12) var(--space-8);
+  /* Bottom clearance for the sticky FloatingCountdown bar so the disclaimer
+     and copyright never sit underneath it. Larger on mobile because the
+     bar uses a 2-row stacked layout there (label above timer). */
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
   background-color: var(--bg-deeper);
   border-top: 1px solid var(--border-subtle);
   position: relative;
+}
+
+@media (min-width: 600px) {
+  .footer {
+    /* Single-row bar from this breakpoint up — less clearance needed. */
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
 }
 
 .footer::before {
@@ -152,9 +160,3 @@
   }
 }
 
-@media (min-width: 1024px) {
-  .footer {
-    /* Sticky CTA bar is hidden at this breakpoint — reset bottom padding. */
-    padding-bottom: var(--space-8);
-  }
-}
