@@ -92,14 +92,20 @@
 }
 
 .visual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-block: var(--space-4);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
   border-radius: var(--radius-lg);
   background-color: var(--accent-soft);
   border: 1px solid var(--border-subtle);
-  min-height: 150px;
+  overflow: hidden;
+}
+
+.image {
+  /* Fit the whole image without cropping or stretching. Any unused space
+     in the 4:3 frame shows the card's soft-accent background as a clean
+     letterbox/pillarbox. */
+  object-fit: contain;
 }
 
 .body {
@@ -147,10 +153,6 @@
 
   .subheading {
     font-size: var(--text-lg);
-  }
-
-  .visual {
-    min-height: 200px;
   }
 }
 

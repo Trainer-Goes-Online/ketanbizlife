@@ -99,9 +99,12 @@ export interface TransformationRow {
 
 export interface VideoTestimonial {
   id: string;
-  youtubeId: string;
-  title: string;
-  thumbnail?: string;
+  /** Wistia media ID (e.g. "txhwzn9b7s"). Set this OR vimeoId. */
+  wistiaId?: string;
+  /** Vimeo video ID (e.g. "1151505324"). Set this OR wistiaId. */
+  vimeoId?: string;
+  /** When true, hide this video on tablet + desktop (>=640px). */
+  mobileOnly?: boolean;
 }
 
 export interface FaqItem {
@@ -181,6 +184,10 @@ export interface ClientConfig {
     statHeadline: string;
     statLines: string[];
     withoutStack: string;
+    /** Uppercase kicker label rendered above the withoutItems chip strip. */
+    withoutHeading: string;
+    /** Short failed-tactic chips rendered below the hero CTA (premium pill row). */
+    withoutItems: string[];
     promiseText: string;
     promiseFrameworkName: string;
     countdownLabel: string;
@@ -250,6 +257,7 @@ export interface ClientConfig {
   };
 
   testimonials: {
+    eyebrow: string;
     heading: string;
     videos: VideoTestimonial[];
   };
@@ -403,6 +411,14 @@ export const clientConfig: ClientConfig = {
     ],
     withoutStack:
       "Without Embassy contacts. Without Google searches. Without B2B portal traps. Without Port Data scams. Without 1-year guarantee gimmicks.",
+    withoutHeading: "No More of This",
+    withoutItems: [
+      "Embassy Contacts",
+      "Google Searches",
+      "B2B Portal Traps",
+      "Port Data Scams",
+      "1-Year Guarantee Gimmicks",
+    ],
     promiseText:
       "Sunday, 31st May 2026. 3 ghante live Zoom webinar. 2 proven buyer-finding systems that can help you get genuine international orders. Wahi system jo Mein 10+ saal se 2 export brands ke saath use kar raha hoon.",
     promiseFrameworkName: "",
@@ -503,8 +519,7 @@ export const clientConfig: ClientConfig = {
         label: "BLOCK 3",
         title: "The 2 Real Buyer-Finding Systems",
         bullets: [
-          "Meta Ads Library demo (a method most Indian exporters have never tried)",
-          "Big Brand Dealers approach with a live case study",
+          "Real buyer-finding systems that you haven't seen anywhere in any webinar",
         ],
       },
       {
@@ -611,16 +626,14 @@ export const clientConfig: ClientConfig = {
     eyebrow: "About Ketan",
     headline: "Mein Bhi Wahin Tha Jahaan Aap Aaj Ho.",
     body:
-      "Mein bhi struggle kiya. Courses kiye. Portals try kiye. Exhibitions attend ki. Agents ko commission diya. Zero result.\n\nSlowly, jo kaam nahi karta tha woh chhoda. Jo kaam karta tha woh systematized kiya. Buyer-finding ke 2 methods nikle jo actually genuine importers tak le jaate hain. Buyer communication ka approach develop kiya jo ghosting, credit demands, aur sample requests sambhalta hai.\n\nAaj 2 export brands chalata hoon (BizLife aur IJARO). Saath mein financial advisory company hai (Madhusudan Tax and Wealth Management). Indian exporters ke saath wahi system share karta hoon jo Mein khud daily use karta hoon.",
+      "Mein bhi struggle kiya. Courses kiye. Portals try kiye. Exhibitions attend ki. Agents ko commission diya. Zero result.\n\nSlowly, jo kaam nahi karta tha woh chhoda. Jo kaam karta tha woh systematized kiya. Buyer-finding ke 2 methods nikle jo actually genuine importers tak le jaate hain. Buyer communication ka approach develop kiya jo ghosting, credit demands, aur sample requests sambhalta hai.\n\nAaj 2 export brands chalata hoon. Saath mein financial advisory company hai (Madhusudan Tax and Wealth Management). Indian exporters ke saath wahi system share karta hoon jo Mein khud daily use karta hoon.",
     stats: [
       { value: "10+ Years", label: "Hands-on Goods Export Experience" },
-      { value: "2 Brands", label: "BizLife · IJARO" },
+      { value: "2 Brands", label: "Active Export Operations" },
       { value: "100+ Cr", label: "Cumulative Export Volume" },
       { value: "9+ Countries", label: "Gulf · Africa · Southeast Asia" },
     ],
     marqueeItems: [
-      "BizLife",
-      "IJARO",
       "Madhusudan",
       "10+ Years Export",
       "Gulf",
@@ -638,38 +651,16 @@ export const clientConfig: ClientConfig = {
 
   // -------- SECTION 9 — Testimonials --------
   testimonials: {
+    eyebrow: "Testimonials",
     heading: "Real Indian Exporters Who Used This System",
     videos: [
-      {
-        id: "testimonial-1",
-        youtubeId: "",
-        title: "Student testimonial 1 (YouTube Short)",
-      },
-      {
-        id: "testimonial-2",
-        youtubeId: "",
-        title: "Student testimonial 2 (YouTube Short)",
-      },
-      {
-        id: "testimonial-3",
-        youtubeId: "",
-        title: "Student testimonial 3 (YouTube Short)",
-      },
-      {
-        id: "testimonial-4",
-        youtubeId: "",
-        title: "Student testimonial 4 (YouTube Short)",
-      },
-      {
-        id: "testimonial-5",
-        youtubeId: "",
-        title: "Student testimonial 5 (YouTube Short)",
-      },
-      {
-        id: "testimonial-6",
-        youtubeId: "",
-        title: "Student testimonial 6 (YouTube Short)",
-      },
+      { id: "testimonial-viren", vimeoId: "1151505324", mobileOnly: true },
+      { id: "testimonial-1", wistiaId: "txhwzn9b7s" },
+      { id: "testimonial-2", wistiaId: "uce2vo91tv" },
+      { id: "testimonial-3", wistiaId: "7sde1semev" },
+      { id: "testimonial-4", wistiaId: "pqfqrzkpa1" },
+      { id: "testimonial-5", wistiaId: "w84s07ardv" },
+      { id: "testimonial-6", wistiaId: "zjst8uyy88" },
     ],
   },
 

@@ -67,6 +67,21 @@
   line-height: var(--leading-relaxed);
 }
 
+/* Mobile reorder: image appears between heading and text. CSS order
+   on the grid item (the ScrollReveal wrapper) flips the visual position
+   without restructuring the JSX. */
+.visualSlot {
+  order: -1;
+}
+
+@media (min-width: 1024px) {
+  .visualSlot {
+    /* Side-by-side on desktop — text on the left as authored, image on
+       the right (natural source order). */
+    order: 0;
+  }
+}
+
 .visualFigure {
   display: flex;
   flex-direction: column;
@@ -75,23 +90,104 @@
 }
 
 .visualFrame {
+  position: relative;
+  width: 100%;
+  /* Mobile: full 3:4 (photo's native ratio — no crop). */
+  aspect-ratio: 3 / 4;
+  max-width: 480px;
+  margin-inline: auto;
   border-radius: var(--radius-xl);
   background-color: var(--glass-bg);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow:
+    var(--glass-shadow),
+    0 16px 40px rgba(47, 107, 255, 0.08);
   overflow: hidden;
-  padding: var(--space-3);
+  isolation: isolate;
+  transition:
+    border-color var(--duration-base) var(--ease-out-strong),
+    box-shadow var(--duration-base) var(--ease-out-strong),
+    transform var(--duration-base) var(--ease-out-strong);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .visualFrame:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-4px);
+    box-shadow:
+      var(--glass-shadow-hover),
+      0 24px 56px rgba(47, 107, 255, 0.18),
+      0 0 36px rgba(47, 107, 255, 0.2);
+  }
+  .visualFrame:hover .visualImage {
+    transform: scale(1.04);
+  }
+  .visualFrame:hover .visualOverlay {
+    opacity: 1;
+  }
+}
+
+.visualImage {
+  object-fit: cover;
+  object-position: center top;
+  transition: transform var(--duration-medium) var(--ease-out-strong);
+}
+
+/* Subtle accent gradient that strengthens on hover (sits between image
+   and the name caption, never obscures the face). */
+.visualOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to top,
+    rgba(5, 8, 20, 0.65) 0%,
+    rgba(5, 8, 20, 0.25) 28%,
+    transparent 55%
+  );
+  opacity: 0.85;
+  transition: opacity var(--duration-base) var(--ease-out-strong);
+  pointer-events: none;
+}
+
+/* Name caption sitting at the bottom of the photo. */
 .visualCaption {
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  color: var(--text-muted);
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-5) var(--space-4) var(--space-4);
   text-align: center;
-  letter-spacing: 0.01em;
-  line-height: var(--leading-relaxed);
+  pointer-events: none;
+}
+
+.visualName {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-black);
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
+.visualRole {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.22em;
+  color: var(--accent-hover);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+@media (min-width: 768px) {
+  .visualName {
+    font-size: var(--text-xl);
+  }
 }
 
 .stats {
@@ -118,5 +214,17 @@
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
     gap: var(--space-12);
     align-items: center;
+  }
+
+  /* Desktop: trim a bit from the top of the photo so the frame visually
+     aligns closer to the left text column. object-position keeps Ketan's
+     face safely in view (we shift the image anchor toward the bottom by
+     ~30%, which only crops the area above his head). */
+  .visualFrame {
+    aspect-ratio: 5 / 6;
+  }
+
+  .visualImage {
+    object-position: center 30%;
   }
 }

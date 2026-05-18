@@ -10,7 +10,6 @@ import { Footer } from "@/components/Footer";
 import { GuaranteeSection } from "@/components/GuaranteeSection";
 import { Hero } from "@/components/Hero";
 import { IdentityBadgesGrid } from "@/components/IdentityBadgesGrid";
-import { MobileCTABar } from "@/components/MobileCTABar";
 import { ScenesSection } from "@/components/ScenesSection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { TransformationTable } from "@/components/TransformationTable";
@@ -106,15 +105,8 @@ export default async function FunnelPage({ searchParams }: PageProps) {
         social={clientConfig.social}
       />
 
-      <MobileCTABar
-        ctaText={clientConfig.hero.primaryCtaText}
-        ctaHref={checkoutHref}
-        revealAfterId="hero"
-      />
-
       <FloatingCountdown
         targetISO={clientConfig.event.countdownTargetISO}
-        revealAfterId="hero"
         ctaHref={checkoutHref}
         ctaLabel="Book Seat at ₹99"
       />

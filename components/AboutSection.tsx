@@ -1,5 +1,5 @@
+import Image from "next/image";
 import type { ClientConfig } from "@/client.config";
-import { AboutVisual } from "./AboutVisual";
 import { CredentialsMarquee } from "./CredentialsMarquee";
 import { ScrollReveal } from "./ScrollReveal";
 import { StatStrip } from "./StatStrip";
@@ -38,14 +38,28 @@ export function AboutSection({ about, hiddenStatIndices }: Props) {
             </div>
           </ScrollReveal>
 
-          <ScrollReveal delay={0.18} from="right">
+          <ScrollReveal
+            delay={0.18}
+            from="right"
+            className={styles.visualSlot}
+          >
             <figure className={styles.visualFigure}>
               <div className={styles.visualFrame}>
-                <AboutVisual />
+                <Image
+                  src="/About-Ketan.jpeg"
+                  alt="Ketan Vadariya"
+                  fill
+                  sizes="(min-width: 1024px) 480px, (min-width: 640px) 50vw, 100vw"
+                  className={styles.visualImage}
+                />
+                <div className={styles.visualOverlay} aria-hidden="true" />
+                <figcaption className={styles.visualCaption}>
+                  <span className={styles.visualName}>KETAN VADARIYA</span>
+                  <span className={styles.visualRole}>
+                    EXPORT MENTOR · 10+ YEARS
+                  </span>
+                </figcaption>
               </div>
-              <figcaption className={styles.visualCaption}>
-                {about.visualCaption}
-              </figcaption>
             </figure>
           </ScrollReveal>
         </div>

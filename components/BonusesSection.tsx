@@ -1,11 +1,20 @@
+import Image from "next/image";
 import type { ClientConfig } from "@/client.config";
-import { BonusIllustration } from "./BonusIllustration";
 import { ScrollReveal } from "./ScrollReveal";
 import styles from "./BonusesSection.module.css";
 
 interface Props {
   bonuses: ClientConfig["bonuses"];
 }
+
+/** Maps the bonus card variant key to its image in /public. */
+const BONUS_IMAGES: Record<string, string> = {
+  verification: "/1.webp",
+  fob: "/2.webp",
+  community: "/3.webp",
+  lms: "/4.webp",
+  recording: "/5.webp",
+};
 
 export function BonusesSection({ bonuses }: Props) {
   return (
@@ -31,7 +40,13 @@ export function BonusesSection({ bonuses }: Props) {
               delay={0.06 + i * 0.05}
             >
               <div className={styles.visual}>
-                <BonusIllustration variant={card.illustration} />
+                <Image
+                  src={BONUS_IMAGES[card.illustration] ?? "/1.webp"}
+                  alt={card.title}
+                  fill
+                  sizes="(min-width: 1024px) 320px, (min-width: 600px) 50vw, 100vw"
+                  className={styles.image}
+                />
               </div>
               <div className={styles.body}>
                 <span className={styles.label}>{card.label}</span>

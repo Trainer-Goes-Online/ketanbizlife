@@ -7,8 +7,6 @@ import styles from "./FloatingCountdown.module.css";
 
 interface Props {
   targetISO: string;
-  /** Element id that, when scrolled past, reveals the floating widget */
-  revealAfterId: string;
   ctaHref: string;
   ctaLabel?: string;
 }
@@ -38,17 +36,20 @@ function pad(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
+/**
+ * Sticky countdown bar at the bottom of the viewport. Visible from page
+ * load on all viewports. Footer carries enough bottom padding so this bar
+ * never visually covers the disclaimer / legal links when scrolled to the
+ * end of the page.
+ */
 export function FloatingCountdown({
   targetISO,
-  revealAfterId,
   ctaHref,
   ctaLabel = "Book Seat",
 }: Props) {
-  const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [time, setTime] = useState<TimeLeft>(() => computeTimeLeft(targetISO));
 
-  // Tick every second
   useEffect(() => {
     setMounted(true);
     setTime(computeTimeLeft(targetISO));
@@ -58,49 +59,36 @@ export function FloatingCountdown({
     return () => clearInterval(interval);
   }, [targetISO]);
 
-  // Show after hero exits viewport
-  useEffect(() => {
-    const target = document.getElementById(revealAfterId);
-    if (!target) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          setVisible(!entry.isIntersecting);
-        }
-      },
-      { threshold: 0, rootMargin: "0px" },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [revealAfterId]);
-
   if (!mounted || time.expired) return null;
 
   return (
     <div
-      className={`${styles.widget} ${visible ? styles.visible : ""}`}
-      aria-hidden={!visible}
+      className={styles.bar}
       role="region"
       aria-label="Webinar countdown"
     >
-      <div className={styles.label}>
-        <Icon name="clock" size={14} />
-        <span>Webinar in</span>
-      </div>
+      <div className={styles.inner}>
+        <div className={styles.label}>
+          <Icon name="clock" size={14} />
+          <span>Webinar in</span>
+        </div>
 
-      <div className={styles.cells}>
-        <Cell value={pad(time.days)} unit="d" />
-        <Cell value={pad(time.hours)} unit="h" />
-        <Cell value={pad(time.minutes)} unit="m" />
-        <Cell value={pad(time.seconds)} unit="s" />
-      </div>
+        <div className={styles.cells}>
+          <Cell value={pad(time.days)} unit="d" />
+          <Cell value={pad(time.hours)} unit="h" />
+          <Cell value={pad(time.minutes)} unit="m" />
+          <Cell value={pad(time.seconds)} unit="s" />
+        </div>
 
-      <Link href={ctaHref} className={styles.cta} aria-label={`${ctaLabel} for ₹99 webinar`}>
-        <span>{ctaLabel}</span>
-        <Icon name="arrow-right" size={14} />
-      </Link>
+        <Link
+          href={ctaHref}
+          className={styles.cta}
+          aria-label={`${ctaLabel} for ₹99 webinar`}
+        >
+          <span>{ctaLabel}</span>
+          <Icon name="arrow-right" size={14} />
+        </Link>
+      </div>
     </div>
   );
 }

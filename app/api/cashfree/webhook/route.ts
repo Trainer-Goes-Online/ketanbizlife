@@ -3,7 +3,7 @@ import {
   base64UrlDecode,
   verifyCashfreeWebhookSignature,
 } from "@/lib/cashfree";
-import { firePabblyWebhook } from "@/lib/pabbly";
+import { firePabblyWebhook, type PabblyBumpItem } from "@/lib/pabbly";
 import { fireMetaCapiPurchase } from "@/lib/capi";
 import { tryClaimOrder } from "@/lib/dedup";
 import { isProductionHost } from "@/lib/env";
@@ -91,6 +91,7 @@ function rebuildUtmFromTags(
 function resolveBumps(idsCsv: string | undefined): {
   bumpsLine: string;
   bumpsTotal: number;
+  bumpItems: PabblyBumpItem[];
 } {
   const ids = (idsCsv ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const matched = ids
@@ -103,6 +104,11 @@ function resolveBumps(idsCsv: string | undefined): {
         ? matched.map((b) => `${b.title} (₹${b.price})`).join("; ")
         : "none",
     bumpsTotal: matched.reduce((sum, b) => sum + b.price, 0),
+    bumpItems: matched.map((b) => ({
+      id: b.id,
+      title: b.title,
+      price: b.price,
+    })),
   };
 }
 
@@ -173,7 +179,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const utm = rebuildUtmFromTags(tags);
   const fbc = tags.fbc;
   const fbp = tags.fbp;
-  const { bumpsLine, bumpsTotal } = resolveBumps(tags.bumps);
+  const { bumpsLine, bumpsTotal, bumpItems } = resolveBumps(tags.bumps);
   const basePrice = clientConfig.pricing.price;
   const grandTotal =
     typeof parsed.data?.order?.order_amount === "number"
@@ -194,6 +200,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     basePrice,
     bumpsTotal,
     bumps: bumpsLine,
+    bumpItems,
     currency,
     timezone: clientConfig.event.timezone,
   });
