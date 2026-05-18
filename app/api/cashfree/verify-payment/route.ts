@@ -121,9 +121,6 @@ export async function POST(
   // Trust the server-side resolved total over anything from the client.
   const serverGrandTotal = basePrice + bumpsTotal;
 
-  const eventSourceUrl =
-    request.headers.get("referer") ??
-    `https://${clientConfig.brand.domain}/thank-you`;
   const clientIp = extractClientIp(request);
   const clientUserAgent = request.headers.get("user-agent") ?? "";
 
@@ -153,7 +150,7 @@ export async function POST(
         value: serverGrandTotal,
         currency: clientConfig.pricing.currency,
         paymentId,
-        eventSourceUrl,
+        kind: clientConfig.capi.kind,
         clientIp,
         clientUserAgent,
         fbc,

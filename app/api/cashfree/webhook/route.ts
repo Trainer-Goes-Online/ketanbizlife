@@ -211,7 +211,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         value: grandTotal,
         currency,
         paymentId,
-        eventSourceUrl: `https://${clientConfig.brand.domain}/thank-you`,
+        kind: clientConfig.capi.kind,
         clientIp: "",
         clientUserAgent: "",
         fbc,

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, Noto_Sans_Devanagari } from "next/font/google";
 import Script from "next/script";
+import { MetaPixelPageView } from "@/components/MetaPixelPageView";
 import { clientConfig } from "@/client.config";
 import "./globals.css";
 
@@ -77,7 +78,17 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { gaMeasurementId, clarityProjectId } = clientConfig.analytics;
+  const { gaMeasurementId, clarityProjectId, metaPixelId } =
+    clientConfig.analytics;
+  const productionDomain = clientConfig.brand.domain;
+
+  // All three analytics scripts are rendered unconditionally on every page,
+  // but each one wraps its init in a runtime host check so it only activates
+  // on the production brand domain. localhost and any *.vercel.app preview
+  // URL never fire PageViews or send data to Meta / GA4 / Clarity.
+  // The check is done client-side (window.location.host) instead of via
+  // next/headers so the layout stays static-prerenderable for "/", "/privacy",
+  // "/terms", "/thank-you", etc.
 
   return (
     <html
@@ -87,34 +98,52 @@ export default function RootLayout({
       <body>
         {children}
 
-        {/* GA4 — render only when measurement ID is set */}
-        {gaMeasurementId ? (
+        {/* Meta Pixel — base init, no auto PageView (handled by MetaPixelPageView below) */}
+        {metaPixelId ? (
           <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
-              strategy="afterInteractive"
-            />
-            <Script id="ga4-init" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaMeasurementId}', { anonymize_ip: true });
-              `}
+            <Script id="meta-pixel-init" strategy="afterInteractive">
+              {`if (window.location.host.toLowerCase() === "${productionDomain}") {
+                !function(f,b,e,v,n,t,s)
+                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                n.queue=[];t=b.createElement(e);t.async=!0;
+                t.src=v;s=b.getElementsByTagName(e)[0];
+                s.parentNode.insertBefore(t,s)}(window, document,'script',
+                'https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', '${metaPixelId}');
+              }`}
             </Script>
+            <MetaPixelPageView productionDomain={productionDomain} />
           </>
         ) : null}
 
-        {/* Microsoft Clarity — render only when project ID is set */}
+        {/* GA4 — host-gated client-side */}
+        {gaMeasurementId ? (
+          <Script id="ga4-loader" strategy="afterInteractive">
+            {`if (window.location.host.toLowerCase() === "${productionDomain}") {
+              var s = document.createElement('script');
+              s.async = true;
+              s.src = 'https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}';
+              document.head.appendChild(s);
+              window.dataLayer = window.dataLayer || [];
+              window.gtag = function(){window.dataLayer.push(arguments);};
+              window.gtag('js', new Date());
+              window.gtag('config', '${gaMeasurementId}');
+            }`}
+          </Script>
+        ) : null}
+
+        {/* Microsoft Clarity — host-gated client-side */}
         {clarityProjectId ? (
           <Script id="clarity-init" strategy="afterInteractive">
-            {`
+            {`if (window.location.host.toLowerCase() === "${productionDomain}") {
               (function(c,l,a,r,i,t,y){
                 c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
                 t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
                 y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
               })(window, document, "clarity", "script", "${clarityProjectId}");
-            `}
+            }`}
           </Script>
         ) : null}
       </body>

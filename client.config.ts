@@ -313,6 +313,7 @@ export interface ClientConfig {
   analytics: {
     gaMeasurementId: string;
     clarityProjectId: string;
+    metaPixelId: string;
   };
 
   cashfreeModal: {
@@ -326,6 +327,8 @@ export interface ClientConfig {
     enabled: boolean;
     eventName: string;
     purchaseValue: number;
+    /** Optional category sent in custom_data.kind (e.g. "webinar"). Empty = omit. */
+    kind: string;
   };
 
   approvalItems: {
@@ -343,7 +346,7 @@ export const clientConfig: ClientConfig = {
   brand: {
     name: "Ketan BizLife",
     tagline: "Export Unstuck · Learn · Connect · Grow",
-    domain: "lp.ketanbizlife.com",
+    domain: "export.ketanbizlife.com",
     region: "India",
     language: "Hindi-English",
     currency: "INR",
@@ -854,8 +857,9 @@ export const clientConfig: ClientConfig = {
   },
 
   analytics: {
-    gaMeasurementId: "",
-    clarityProjectId: "",
+    gaMeasurementId: str(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID, ""),
+    clarityProjectId: str(process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID, ""),
+    metaPixelId: str(process.env.META_PIXEL_ID, ""),
   },
 
   cashfreeModal: {
@@ -869,6 +873,7 @@ export const clientConfig: ClientConfig = {
     enabled: true,
     eventName: "sales",
     purchaseValue: WEBINAR_PRICE,
+    kind: "webinar",
   },
 
   approvalItems: {
