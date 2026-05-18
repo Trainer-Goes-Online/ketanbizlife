@@ -1,57 +1,61 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
 import styles from "./VideoTestimonial.module.css";
 
 interface Props {
-  /** Wistia media ID. Either this or vimeoId must be set. */
+  /** Wistia media ID. Used for the iframe fallback when mp4Url is absent. */
   wistiaId?: string;
-  /** Vimeo video ID. Either this or wistiaId must be set. */
+  /** Vimeo video ID. Vimeo always renders as an iframe. */
   vimeoId?: string;
+  /** Direct MP4 URL extracted from Wistia metadata (server-side fetched).
+   *  When set, we render an HTML5 <video> element — this is the only
+   *  reliable mobile autoplay-with-sound path. */
+  mp4Url?: string;
   /** Pre-resolved high-res still-frame URL (parent fetches from provider API). */
   thumbnail: string;
 }
 
 const DESKTOP_BREAKPOINT = "(min-width: 1024px)";
-const WISTIA_SCRIPT_SRC = "https://fast.wistia.com/player.js";
-
-/**
- * Inject the Wistia player.js script once for the page. Pre-loading on
- * mount means the <wistia-player> custom element is already defined by
- * the time the user clicks — so its connectedCallback (which calls
- * play()) runs inside the same task as the click gesture, and the
- * browser permits autoplay with sound.
- */
-function ensureWistiaPlayerScript() {
-  if (typeof document === "undefined") return;
-  if (document.querySelector(`script[src="${WISTIA_SCRIPT_SRC}"]`)) return;
-  const script = document.createElement("script");
-  script.src = WISTIA_SCRIPT_SRC;
-  script.async = true;
-  document.head.appendChild(script);
-}
 
 /**
  * 9:16 portrait testimonial card. Click to play.
- * - Desktop (>=1024px): swaps the card with an inline player.
- * - Mobile/tablet (<1024px): opens a fullscreen modal with the player.
- * In both cases the video starts unmuted on the first click — Wistia
- * uses the <wistia-player> web component (same-origin context, so the
- * click gesture activates the underlying <video> element with sound).
- * Vimeo entries still use the iframe embed.
+ *
+ * Playback strategy and why it's structured this way:
+ *
+ * - Mobile browsers (esp. iOS Safari) only permit autoplay-with-sound
+ *   when video.play() is invoked SYNCHRONOUSLY inside a user gesture
+ *   handler. Any async delay (setTimeout, microtask, useEffect, iframe
+ *   load round-trip) causes Safari to mute or block playback.
+ * - The iframe approach (Wistia's <wistia-player> or Wistia iframe
+ *   embed) hands off to Wistia's player.js, which calls .play() after
+ *   the iframe has loaded — that's well outside the gesture window.
+ *   This is why Wistia iframes failed on real mobile devices.
+ * - The fix: an HTML5 <video> element with the MP4 hotlink from
+ *   Wistia's metadata. We render it eagerly via flushSync so the
+ *   element exists in the DOM before this handler returns, then call
+ *   videoRef.current.play() synchronously — still inside the gesture.
+ * - Vimeo iframe is kept (Vimeo doesn't expose simple MP4 hotlinks)
+ *   and works because Vimeo's player handles gesture propagation well.
+ * - If MP4 extraction failed server-side, we fall back to the Wistia
+ *   iframe embed (best-effort — may not autoplay on mobile, but the
+ *   user can tap Wistia's in-iframe play button).
  */
-export function VideoTestimonial({ wistiaId, vimeoId, thumbnail }: Props) {
+export function VideoTestimonial({
+  wistiaId,
+  vimeoId,
+  mp4Url,
+  thumbnail,
+}: Props) {
   const [inlinePlaying, setInlinePlaying] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    // Pre-load the Wistia script on mount so the player is ready the
-    // moment the user clicks.
-    if (wistiaId) ensureWistiaPlayerScript();
-  }, [wistiaId]);
+  }, []);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -67,7 +71,7 @@ export function VideoTestimonial({ wistiaId, vimeoId, thumbnail }: Props) {
     };
   }, [modalOpen]);
 
-  const hasVideo = Boolean(wistiaId || vimeoId);
+  const hasVideo = Boolean(mp4Url || vimeoId || wistiaId);
 
   if (!hasVideo) {
     return (
@@ -80,18 +84,27 @@ export function VideoTestimonial({ wistiaId, vimeoId, thumbnail }: Props) {
     );
   }
 
-  const playerNode = wistiaId ? (
-    <wistia-player
-      media-id={wistiaId}
-      autoplay="true"
-      muted="false"
-      playsinline="true"
-      player-color="2F6BFF"
-      style={{ display: "block", width: "100%", height: "100%" }}
+  const playerNode = mp4Url ? (
+    <video
+      ref={videoRef}
+      src={mp4Url}
+      controls
+      playsInline
+      preload="metadata"
+      poster={thumbnail}
+      className={styles.inlineIframe}
     />
   ) : vimeoId ? (
     <iframe
       src={`https://player.vimeo.com/video/${vimeoId}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&color=2F6BFF`}
+      title="Testimonial video"
+      allow="autoplay; fullscreen"
+      allowFullScreen
+      className={styles.inlineIframe}
+    />
+  ) : wistiaId ? (
+    <iframe
+      src={`https://fast.wistia.net/embed/iframe/${wistiaId}?autoPlay=true&playerColor=2F6BFF&playsinline=true&videoFoam=true`}
       title="Testimonial video"
       allow="autoplay; fullscreen"
       allowFullScreen
@@ -104,14 +117,30 @@ export function VideoTestimonial({ wistiaId, vimeoId, thumbnail }: Props) {
   }
 
   const handlePlay = () => {
-    if (wistiaId) ensureWistiaPlayerScript();
     const isDesktop =
       typeof window !== "undefined" &&
       window.matchMedia(DESKTOP_BREAKPOINT).matches;
-    if (isDesktop) {
-      setInlinePlaying(true);
-    } else {
-      setModalOpen(true);
+
+    // flushSync forces React to apply the state update and re-render
+    // BEFORE this click handler returns. After this call, the <video>
+    // element exists in the DOM and videoRef.current is populated.
+    // Without flushSync, the render happens asynchronously after the
+    // click handler returns — and by then the user-gesture activation
+    // has expired, blocking autoplay-with-sound on mobile.
+    flushSync(() => {
+      if (isDesktop) setInlinePlaying(true);
+      else setModalOpen(true);
+    });
+
+    // Synchronous play() call, still inside the click event's task.
+    // This is what unlocks unmuted autoplay on iOS Safari and other
+    // mobile browsers. If the video element was rendered (mp4Url path),
+    // ref is populated by now thanks to flushSync.
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {
+        // Autoplay denied (very rare with this setup). The <video>
+        // element shows native controls so the user can tap play.
+      });
     }
   };
 
