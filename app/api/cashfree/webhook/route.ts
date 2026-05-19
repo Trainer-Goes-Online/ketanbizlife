@@ -228,6 +228,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         value: grandTotal,
         currency,
         paymentId,
+        // Webhook is hit by Cashfree's server, not the user's browser —
+        // no window.location to inherit from. Hardcode the production
+        // checkout URL as the source of the conversion.
+        eventSourceUrl: `https://${clientConfig.brand.domain}/checkout`,
         kind: clientConfig.capi.kind,
         clientIp: "",
         clientUserAgent: "",

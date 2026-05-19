@@ -50,6 +50,9 @@ export interface VerifyPaymentRequest {
   /** Optional Facebook click-id and browser-id cookies (forwarded for CAPI) */
   fbc?: string;
   fbp?: string;
+  /** window.location.href at the time of submit. Required by Meta CAPI as
+   *  event_source_url for matching + restricted-category compliance. */
+  eventSourceUrl?: string;
 }
 
 export interface VerifyPaymentResponse {

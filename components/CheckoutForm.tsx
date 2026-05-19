@@ -6,6 +6,7 @@ import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { load, type Cashfree } from "@cashfreepayments/cashfree-js";
 import type { ClientConfig, CheckoutBump } from "@/client.config";
+import { setMetaAdvancedMatching } from "@/lib/analytics";
 import { readCookie, readUtmFromStorage, utmToQueryString } from "@/lib/utm";
 import type {
   CashfreeMode,
@@ -257,6 +258,10 @@ export function CheckoutForm({ config, mode }: Props) {
           fbp,
           selectedBumpIds,
           grandTotal,
+          // window.location.href becomes event_source_url server-side.
+          // Required by Meta CAPI for matching + diagnostic compliance.
+          eventSourceUrl:
+            typeof window !== "undefined" ? window.location.href : undefined,
         }),
       });
 
@@ -285,6 +290,20 @@ export function CheckoutForm({ config, mode }: Props) {
         setSubmitting(false);
         return;
       }
+
+      // Manual Advanced Matching — set buyer identity on the pixel
+      // BEFORE the route change. Meta's auto-PageView fires on every
+      // SPA navigation, so MAM must be wired on the current pixel
+      // context before /thank-you's PageView goes out. Helper no-ops
+      // on non-production hosts because window.fbq is undefined there.
+      setMetaAdvancedMatching({
+        email: customer.email,
+        phone: customer.phone,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        city: customer.city,
+        country: customer.countryCode,
+      });
 
       const utmQs = utmToQueryString(utm);
       router.push(

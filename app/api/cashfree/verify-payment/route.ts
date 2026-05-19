@@ -62,8 +62,16 @@ export async function POST(
     );
   }
 
-  const { orderId, customer, utm, fbc, fbp, selectedBumpIds, grandTotal } =
-    body;
+  const {
+    orderId,
+    customer,
+    utm,
+    fbc,
+    fbp,
+    selectedBumpIds,
+    grandTotal,
+    eventSourceUrl,
+  } = body;
 
   if (
     !orderId ||
@@ -161,6 +169,14 @@ export async function POST(
       `[verify-payment] CAPI skipped — host=${request.headers.get("host")} (prod=${onProductionDomain}) mode=${cashfreeMode} amount=${serverGrandTotal}`,
     );
   }
+  // event_source_url comes from the client (window.location.href in
+  // CheckoutForm). Fall back to the production checkout URL when the
+  // client didn't send it — required by Meta CAPI for matching +
+  // restricted-category compliance.
+  const resolvedEventSourceUrl =
+    eventSourceUrl ||
+    `https://${clientConfig.brand.domain}/checkout`;
+
   const capiPromise = capiAllowed
     ? fireMetaCapiPurchase({
         customer,
@@ -168,6 +184,7 @@ export async function POST(
         value: serverGrandTotal,
         currency: clientConfig.pricing.currency,
         paymentId,
+        eventSourceUrl: resolvedEventSourceUrl,
         kind: clientConfig.capi.kind,
         clientIp,
         clientUserAgent,

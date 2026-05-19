@@ -18,3 +18,21 @@ export function sha256Lower(input: string): string {
 export function normalizePhoneForCapi(phone: string): string {
   return phone.replace(/\D+/g, "");
 }
+
+/**
+ * Normalize city for Meta CAPI hashing per Meta's spec:
+ * trim, lowercase, strip everything that isn't a-z (no spaces, no
+ * punctuation, no digits). Example: "New Delhi" -> "newdelhi".
+ */
+export function normalizeCityForCapi(city: string): string {
+  return city.trim().toLowerCase().replace(/[^a-z]/g, "");
+}
+
+/**
+ * Normalize country for Meta CAPI hashing: 2-letter ISO 3166-1 alpha-2,
+ * lowercased. Slices to 2 chars to defensively handle "IND" or other
+ * accidental 3-letter inputs. Example: "IN" -> "in".
+ */
+export function normalizeCountryForCapi(country: string): string {
+  return country.trim().toLowerCase().slice(0, 2);
+}

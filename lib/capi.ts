@@ -1,30 +1,51 @@
 import { randomUUID } from "node:crypto";
-import { normalizePhoneForCapi, sha256Lower } from "./hash";
+import {
+  normalizeCityForCapi,
+  normalizeCountryForCapi,
+  normalizePhoneForCapi,
+  sha256Lower,
+} from "./hash";
 import type { CustomerPayload } from "./types";
 
 const META_GRAPH_VERSION = "v25.0";
 
 /**
- * Fire-and-forget POST to Meta Conversions API. Matches the project's
- * agreed-on payload shape:
+ * Fire-and-forget POST to Meta Conversions API. Sends the conversion as
+ * TWO events in a single HTTP call:
  *
- * - Single event in data[], event_name from caller (we use "sales")
- * - user_data: hashed email + phone only (no name/city/country)
- * - fbc / fbp / client_user_agent / client_ip_address included when present
- * - custom_data: currency, value, kind, payment_id (only the fields with values)
+ *  - "Purchase" (standard) — used by Meta's optimization algorithm and
+ *    AEM iOS auto-priority (Purchase is auto-priority 1, so iOS
+ *    attribution works without us manually claiming a slot).
+ *  - args.eventName (custom, e.g. "sales") — internal source-of-truth
+ *    label our media buyer team optimizes reports against.
  *
- * Callers gate this to the production brand domain (see lib/env.ts) so the
- * pixel never receives test traffic from localhost or vercel.app URLs.
+ * Both events share event_id, event_source_url, user_data, and
+ * custom_data. Same event_id means a duplicate fire (e.g. from the
+ * webhook safety net running in a different Vercel Lambda than
+ * verify-payment) is deduplicated server-side by Meta within a 48h
+ * window — Events Manager shows one Purchase + one sales per order.
+ *
+ * user_data carries six hashed PII fields (em, ph, fn, ln, ct, country)
+ * plus four raw server-context fields (fbc, fbp, client_ip_address,
+ * client_user_agent). This combo is what gets us EMQ >= 9/10 and
+ * keeps CPR down.
+ *
+ * Callers gate this to: brand domain + production Cashfree mode +
+ * amount > ₹1 (see lib/env.ts + verify-payment route).
  *
  * Spec ref: https://developers.facebook.com/docs/marketing-api/conversions-api
  */
 export async function fireMetaCapiPurchase(args: {
   customer: CustomerPayload;
+  /** Custom event name fired alongside the standard "Purchase". */
   eventName: string;
   value: number;
   currency: string;
   paymentId: string;
-  /** Optional category — sent as custom_data.kind when non-empty */
+  /** Page URL where the conversion originated. Server resolves this
+   *  from request body or falls back to a hardcoded production URL. */
+  eventSourceUrl: string;
+  /** Optional category — sent as custom_data.kind when non-empty. */
   kind?: string;
   clientIp: string;
   clientUserAgent: string;
@@ -34,7 +55,7 @@ export async function fireMetaCapiPurchase(args: {
   const pixelId = process.env.META_PIXEL_ID;
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
   console.log(
-    `[capi] fire start event=${args.eventName} paymentId=${args.paymentId} value=${args.value} hasCreds=${Boolean(pixelId && accessToken)}`,
+    `[capi] fire start events=Purchase,${args.eventName} paymentId=${args.paymentId} value=${args.value} url=${args.eventSourceUrl} hasCreds=${Boolean(pixelId && accessToken)}`,
   );
   if (!pixelId || !accessToken) {
     console.warn(
@@ -45,34 +66,56 @@ export async function fireMetaCapiPurchase(args: {
 
   const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${pixelId}/events?access_token=${accessToken}`;
 
-  const hashedEmail = sha256Lower(args.customer.email);
-  const hashedPhone = sha256Lower(
-    normalizePhoneForCapi(args.customer.phone),
-  );
-
+  // ---- user_data: 6 hashed PII fields + 4 raw server-context fields ----
+  // Short Meta codes (em, ph, fn, ln, ct, country) per Meta's spec. All
+  // hashed values are SHA-256, lowercase hex. Normalization rules live
+  // in lib/hash.ts and match what client-side MAM normalizes pre-pixel.
   const userData: Record<string, unknown> = {
-    email: [hashedEmail],
-    phone: [hashedPhone],
+    em: [sha256Lower(args.customer.email)],
+    ph: [sha256Lower(normalizePhoneForCapi(args.customer.phone))],
+    fn: [sha256Lower(args.customer.firstName)],
+    ln: [sha256Lower(args.customer.lastName)],
   };
+  if (args.customer.city) {
+    const normalizedCity = normalizeCityForCapi(args.customer.city);
+    if (normalizedCity) userData.ct = [sha256Lower(normalizedCity)];
+  }
+  if (args.customer.countryCode) {
+    const normalizedCountry = normalizeCountryForCapi(args.customer.countryCode);
+    if (normalizedCountry) userData.country = [sha256Lower(normalizedCountry)];
+  }
+  // Server-context fields are sent RAW (Meta uses them as matching
+  // signals — hashing them would break matching).
   if (args.fbc) userData.fbc = args.fbc;
   if (args.fbp) userData.fbp = args.fbp;
   if (args.clientUserAgent) userData.client_user_agent = args.clientUserAgent;
   if (args.clientIp) userData.client_ip_address = args.clientIp;
 
+  // ---- custom_data: shared between both events ----
   const customData: Record<string, unknown> = {};
   if (args.currency) customData.currency = args.currency;
   if (args.value) customData.value = args.value;
   if (args.kind) customData.kind = args.kind;
   if (args.paymentId) customData.payment_id = args.paymentId;
 
-  const event: Record<string, unknown> = {
-    event_name: args.eventName,
-    event_time: Math.floor(Date.now() / 1000),
-    event_id: args.paymentId || randomUUID(),
-    action_source: "website",
+  // ---- Shared event body ----
+  const eventTime = Math.floor(Date.now() / 1000);
+  const eventId = args.paymentId || randomUUID();
+  const sharedBody = {
+    event_time: eventTime,
+    event_id: eventId,
+    event_source_url: args.eventSourceUrl,
+    action_source: "website" as const,
     user_data: userData,
+    ...(Object.keys(customData).length > 0 ? { custom_data: customData } : {}),
   };
-  if (Object.keys(customData).length > 0) event.custom_data = customData;
+
+  const payload = {
+    data: [
+      { event_name: "Purchase", ...sharedBody },
+      { event_name: args.eventName, ...sharedBody },
+    ],
+  };
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -80,7 +123,7 @@ export async function fireMetaCapiPurchase(args: {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: [event] }),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -89,8 +132,9 @@ export async function fireMetaCapiPurchase(args: {
         `[capi] Meta returned ${res.status} for payment ${args.paymentId}: ${text}`,
       );
     } else {
+      const respBody = await res.text().catch(() => "<no body>");
       console.log(
-        `[capi] Meta CAPI OK ${res.status} for payment ${args.paymentId}`,
+        `[capi] Meta CAPI OK ${res.status} for payment ${args.paymentId} resp=${respBody.slice(0, 200)}`,
       );
     }
   } catch (err) {
