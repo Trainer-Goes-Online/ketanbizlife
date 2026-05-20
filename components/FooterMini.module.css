@@ -1,0 +1,112 @@
+/* ============================================================================
+   FooterMini — compact footer for checkout / thank-you pages
+   ============================================================================ */
+
+.footer {
+  padding-block: var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-card);
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.copyright {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.brandMark {
+  font-family: var(--font-display);
+  font-weight: var(--weight-black);
+  letter-spacing: 0.18em;
+  color: var(--text-secondary);
+}
+
+.dot {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.linkWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sep {
+  color: var(--text-muted);
+  opacity: 0.5;
+  font-size: var(--text-xs);
+}
+
+.link {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  transition:
+    color var(--duration-fast) var(--ease-out-strong),
+    background-color var(--duration-fast) var(--ease-out-strong);
+}
+
+.link:hover {
+  color: var(--accent);
+  background-color: var(--bg-card-hover, rgba(255, 255, 255, 0.04));
+}
+
+@media (min-width: 640px) {
+  .inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--space-5);
+    flex-wrap: nowrap;
+  }
+
+  .copyright {
+    justify-content: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .links {
+    justify-content: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: var(--space-2);
+  }
+
+  .linkWrap {
+    white-space: nowrap;
+  }
+
+  .link {
+    white-space: nowrap;
+  }
+}

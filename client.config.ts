@@ -827,7 +827,7 @@ export const clientConfig: ClientConfig = {
     legalLinks: [
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Terms & Conditions", href: "/terms" },
-      { label: "Refund Policy", href: "/terms#refund" },
+      { label: "Refund Policy", href: "/refund" },
     ],
     disclaimer:
       "Disclaimer: Results vary based on individual effort, product category, and market conditions. This webinar teaches a framework and system; outcomes depend on consistent application. No guaranteed income claims are made.",
@@ -842,7 +842,7 @@ export const clientConfig: ClientConfig = {
   },
 
   community: {
-    whatsappGroupUrl: "",
+    whatsappGroupUrl: "https://chat.whatsapp.com/LjNwhbgRIzfJaJhMFfnS96",
     fallbackMessage:
       "WhatsApp group invite + Zoom link will reach you 30 minutes before the webinar.",
   },
