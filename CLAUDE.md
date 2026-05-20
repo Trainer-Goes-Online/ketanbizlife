@@ -1,4 +1,4 @@
-# Ketan BizLife — Landing Page (CLAUDE.md)
+# Ketan Bizlife — Landing Page (CLAUDE.md)
 
 A high-conversion landing page funnel for **Ketan BizLife**, an Indian export-coaching brand. The product is a ₹99 live 3-hour Sunday Zoom webinar targeted at Indian manufacturers, traders, and sourcing agents who want to find real international buyers. Copy is Hinglish (Hindi + English), region is India, currency is INR.
 
