@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Countdown } from "@/components/Countdown";
+import { FooterMini } from "@/components/FooterMini";
 import { Icon } from "@/components/Icon";
 import { clientConfig } from "@/client.config";
 import styles from "./page.module.css";
@@ -127,6 +128,42 @@ export default function ThankYouPage() {
               label="Webinar starts in"
             />
           </div>
+
+          {community ? (
+            <Link
+              href={community}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.heroWhatsapp}
+            >
+              <span className={styles.heroWaIcon} aria-hidden="true">
+                <svg
+                  viewBox="0 0 32 32"
+                  width="28"
+                  height="28"
+                  fill="currentColor"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M16.001 4C9.374 4 4 9.373 4 16c0 2.115.555 4.184 1.612 6.005L4 28l6.156-1.594A11.94 11.94 0 0 0 16.001 28C22.628 28 28 22.627 28 16S22.628 4 16.001 4Zm0 21.818c-1.838 0-3.64-.493-5.221-1.427l-.374-.222-3.654.946.974-3.563-.244-.388A9.78 9.78 0 0 1 6.182 16c0-5.42 4.4-9.818 9.819-9.818 5.418 0 9.818 4.398 9.818 9.818 0 5.42-4.4 9.818-9.818 9.818Zm5.378-7.348c-.295-.148-1.745-.86-2.015-.96-.27-.098-.467-.148-.664.149-.196.295-.762.96-.934 1.158-.172.197-.344.221-.639.074-.295-.148-1.246-.46-2.373-1.466-.877-.783-1.469-1.749-1.641-2.044-.172-.296-.018-.456.13-.603.133-.133.295-.345.443-.517.148-.172.197-.295.295-.492.099-.197.05-.369-.024-.517-.074-.148-.664-1.605-.91-2.197-.239-.575-.483-.497-.664-.506l-.566-.01c-.197 0-.516.074-.787.369-.27.295-1.033 1.009-1.033 2.466 0 1.456 1.057 2.862 1.205 3.06.148.197 2.082 3.18 5.04 4.46.704.305 1.253.487 1.681.624.706.224 1.349.193 1.857.117.567-.085 1.745-.713 1.99-1.402.246-.689.246-1.279.172-1.402-.074-.123-.27-.197-.566-.345Z" />
+                </svg>
+                <span className={styles.heroWaPulse} aria-hidden="true" />
+                <span className={styles.heroWaPulseTwo} aria-hidden="true" />
+              </span>
+              <span className={styles.heroWaCopy}>
+                <span className={styles.heroWaTitle}>
+                  Join the WhatsApp community
+                  <span className={styles.heroWaDot} aria-hidden="true" />
+                </span>
+                <span className={styles.heroWaSub}>
+                  Zoom link, reminders & live Q&amp;A queue drop here
+                </span>
+              </span>
+              <span className={styles.heroWaCta} aria-hidden="true">
+                Join
+                <span className={styles.heroWaArrow}>→</span>
+              </span>
+            </Link>
+          ) : null}
         </div>
       </section>
 
@@ -187,52 +224,16 @@ export default function ThankYouPage() {
         </div>
       </section>
 
-      {/* ============= Community CTA (dark) ============= */}
-      {community ? (
-        <section className={styles.communityBlock}>
-          <div className={`container-narrow ${styles.communityInner}`}>
-            <div className={styles.communityCard}>
-              <span className={styles.communityIcon} aria-hidden="true">
-                <Icon name="message" size={22} />
-              </span>
-              <div className={styles.communityCopy}>
-                <h2 className={styles.communityHeading}>
-                  Join the WhatsApp community
-                </h2>
-                <p className={styles.communityBody}>
-                  Pre-webinar warmup, agenda reminders, and live Q&amp;A queue
-                  start here. Optional but recommended.
-                </p>
-              </div>
-              <Link
-                href={community}
-                className={styles.communityCta}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span>Join the group</span>
-                <span aria-hidden="true">→</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section className={styles.communityBlock}>
-          <div className={`container-narrow ${styles.communityInner}`}>
-            <div className={styles.communityFallback}>
-              <p>{clientConfig.community.fallbackMessage}</p>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ============= Signoff (light) ============= */}
       <section className={`light ${styles.signoffBlock}`}>
         <div className={`container-narrow ${styles.signoffInner}`}>
+          <span className={styles.signoffRule} aria-hidden="true" />
           <p className={styles.signoff}>See you Sunday.</p>
           <p className={styles.signoffName}>— Ketan</p>
         </div>
       </section>
+
+      <FooterMini brand={clientConfig.brand} footer={clientConfig.footer} />
     </div>
   );
 }

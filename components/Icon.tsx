@@ -19,7 +19,14 @@ export type IconName =
   | "gift"
   | "lightbulb"
   | "message"
-  | "package";
+  | "package"
+  | "lock"
+  | "refresh"
+  | "mail"
+  | "file-text"
+  | "scale-balance"
+  | "rupee"
+  | "info";
 
 interface Props extends Omit<SVGProps<SVGSVGElement>, "name"> {
   name: IconName;
@@ -170,6 +177,64 @@ export function Icon({ name, size = 24, ...rest }: Props) {
         <svg {...common}>
           <path d="M3 7l9-4 9 4v10l-9 4-9-4V7z" />
           <path d="M3 7l9 4 9-4M12 11v10" />
+        </svg>
+      );
+    case "lock":
+      return (
+        <svg {...common}>
+          <rect x="4.5" y="11" width="15" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          <circle cx="12" cy="16" r="1.2" />
+        </svg>
+      );
+    case "refresh":
+      return (
+        <svg {...common}>
+          <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+          <path d="M3 21v-5h5" />
+        </svg>
+      );
+    case "mail":
+      return (
+        <svg {...common}>
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="M3 7l9 7 9-7" />
+        </svg>
+      );
+    case "file-text":
+      return (
+        <svg {...common}>
+          <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+          <path d="M14 3v6h6" />
+          <path d="M8 13h8M8 17h8M8 9h2" />
+        </svg>
+      );
+    case "scale-balance":
+      return (
+        <svg {...common}>
+          <path d="M12 3v18" />
+          <path d="M5 21h14" />
+          <path d="M6 7h12" />
+          <path d="M6 7l-3 6a3 3 0 0 0 6 0z" />
+          <path d="M18 7l-3 6a3 3 0 0 0 6 0z" />
+        </svg>
+      );
+    case "rupee":
+      return (
+        <svg {...common}>
+          <path d="M7 5h11" />
+          <path d="M7 9h11" />
+          <path d="M7 5c3 0 5 1.5 5 4s-2 4-5 4h-1l8 8" />
+        </svg>
+      );
+    case "info":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6" />
+          <circle cx="12" cy="8" r="0.6" fill="currentColor" stroke="none" />
         </svg>
       );
   }

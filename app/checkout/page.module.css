@@ -267,6 +267,18 @@
   background-color: var(--accent-soft);
   border: 1px solid var(--border-accent);
   border-radius: var(--radius-md);
+  transition:
+    transform var(--duration-base) var(--ease-out-strong),
+    border-color var(--duration-base) var(--ease-out-strong),
+    box-shadow var(--duration-base) var(--ease-out-strong),
+    background-color var(--duration-base) var(--ease-out-strong);
+}
+
+.asideEvent:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-hover);
+  background-color: rgba(47, 107, 255, 0.18);
+  box-shadow: 0 6px 20px rgba(47, 107, 255, 0.18);
 }
 
 .asideEventLabel {
@@ -312,6 +324,16 @@
   border-radius: var(--radius-md);
   color: var(--accent-hover);
   flex-shrink: 0;
+  transition:
+    transform var(--duration-base) var(--ease-out-strong),
+    box-shadow var(--duration-base) var(--ease-out-strong),
+    border-color var(--duration-base) var(--ease-out-strong);
+}
+
+.bonusesIcon:hover {
+  transform: scale(1.08) rotate(-4deg);
+  border-color: var(--accent-hover);
+  box-shadow: 0 0 22px var(--accent-glow);
 }
 
 .bonusesEyebrow {
@@ -349,6 +371,28 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   align-items: center;
+  transition:
+    transform var(--duration-base) var(--ease-out-strong),
+    border-color var(--duration-base) var(--ease-out-strong),
+    box-shadow var(--duration-base) var(--ease-out-strong),
+    background-color var(--duration-base) var(--ease-out-strong);
+}
+
+.bonusItem:hover {
+  transform: translateY(-3px);
+  border-color: var(--glass-border-hover);
+  background-color: var(--bg-card-hover);
+  box-shadow:
+    var(--shadow-md),
+    0 0 22px var(--accent-glow);
+}
+
+.bonusItem:hover .bonusTitle {
+  color: var(--accent-hover);
+}
+
+.bonusTitle {
+  transition: color var(--duration-base) var(--ease-out-strong);
 }
 
 .bonusVisual {
@@ -360,6 +404,16 @@
   border-radius: var(--radius-md);
   background-color: var(--accent-soft);
   border: 1px solid var(--border-subtle);
+  transition:
+    transform var(--duration-base) var(--ease-out-strong),
+    border-color var(--duration-base) var(--ease-out-strong),
+    box-shadow var(--duration-base) var(--ease-out-strong);
+}
+
+.bonusItem:hover .bonusVisual {
+  transform: scale(1.06) rotate(-3deg);
+  border-color: var(--accent-hover);
+  box-shadow: 0 0 18px var(--accent-glow);
 }
 
 .bonusVisual svg {
@@ -420,6 +474,40 @@
     0 1px 0 rgba(255, 255, 255, 0.8) inset,
     0 8px 24px rgba(15, 23, 42, 0.06);
   text-align: center;
+  transition:
+    transform var(--duration-base) var(--ease-out-strong),
+    border-color var(--duration-base) var(--ease-out-strong),
+    box-shadow var(--duration-base) var(--ease-out-strong);
+}
+
+.guaranteeCard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 14px 36px rgba(15, 23, 42, 0.1),
+    0 0 26px rgba(16, 185, 129, 0.18);
+}
+
+.guaranteeBadge {
+  transition:
+    transform var(--duration-base) var(--ease-out-strong),
+    background-color var(--duration-base) var(--ease-out-strong),
+    box-shadow var(--duration-base) var(--ease-out-strong);
+}
+
+.guaranteeCard:hover .guaranteeBadge {
+  transform: scale(1.04);
+  background-color: rgba(16, 185, 129, 0.16);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+}
+
+.guaranteeShield {
+  transition: transform var(--duration-base) var(--ease-out-strong);
+}
+
+.guaranteeCard:hover .guaranteeShield {
+  transform: rotate(-8deg) scale(1.1);
 }
 
 .guaranteeBadge {

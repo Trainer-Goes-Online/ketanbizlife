@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BonusesSection } from "@/components/BonusesSection";
 import { CheckoutForm } from "@/components/CheckoutForm";
+import { FooterMini } from "@/components/FooterMini";
 import { Icon } from "@/components/Icon";
 import { UtmTracker } from "@/components/UtmTracker";
 import { clientConfig } from "@/client.config";
@@ -139,6 +140,8 @@ export default function CheckoutPage() {
           </div>
         </div>
       </section>
+
+      <FooterMini brand={clientConfig.brand} footer={clientConfig.footer} />
     </div>
   );
 }
