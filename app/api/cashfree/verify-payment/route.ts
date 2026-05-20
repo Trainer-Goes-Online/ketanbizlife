@@ -27,6 +27,77 @@ function extractClientIp(request: Request): string {
   return request.headers.get("x-real-ip") ?? "";
 }
 
+/**
+ * Cashfree's payment lifecycle has two state machines that update at
+ * different speeds:
+ *   payment.payment_status: PENDING → SUCCESS         (1–2s after pay)
+ *   order.order_status:     ACTIVE  → PAID            (2–5s after pay)
+ *
+ * Cashfree's modal closes as soon as `payment_status` flips. The browser
+ * then immediately calls verify-payment. If we only check `order_status`
+ * we get a false negative for 2-5 seconds. The fix: query BOTH endpoints
+ * in parallel each attempt, accept either signal as "paid", and retry
+ * with a 1s backoff up to 5 attempts (max ~5s wall time, well under
+ * Vercel's 5m function limit).
+ */
+const POLL_MAX_ATTEMPTS = 5;
+const POLL_DELAY_MS = 1000;
+
+async function pollForPaidStatus(orderId: string): Promise<{
+  isPaid: boolean;
+  orderStatus: string;
+  paymentId?: string;
+  attempts: number;
+}> {
+  let lastOrderStatus = "UNKNOWN";
+
+  for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
+    const attempts = i + 1;
+    let orderStatus: string | null = null;
+    let payments: Awaited<
+      ReturnType<typeof getCashfreeOrderPayments>
+    > = [];
+
+    try {
+      const [orderRes, paymentsRes] = await Promise.all([
+        getCashfreeOrderStatus(orderId),
+        getCashfreeOrderPayments(orderId),
+      ]);
+      orderStatus = orderRes.orderStatus;
+      payments = paymentsRes;
+      lastOrderStatus = orderStatus;
+    } catch (err) {
+      console.warn(
+        `[verify-payment] poll attempt ${attempts} for ${orderId} failed:`,
+        err instanceof Error ? err.message : err,
+      );
+      // Will retry next iteration; orderStatus stays "UNKNOWN"
+    }
+
+    const successPayment = payments.find(
+      (p) => p.payment_status === "SUCCESS",
+    );
+    if (orderStatus === "PAID" || successPayment) {
+      return {
+        isPaid: true,
+        orderStatus: orderStatus ?? lastOrderStatus,
+        paymentId: successPayment?.cf_payment_id,
+        attempts,
+      };
+    }
+
+    if (i < POLL_MAX_ATTEMPTS - 1) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_DELAY_MS));
+    }
+  }
+
+  return {
+    isPaid: false,
+    orderStatus: lastOrderStatus,
+    attempts: POLL_MAX_ATTEMPTS,
+  };
+}
+
 function resolveBumps(selectedBumpIds: string[]): {
   bumpsLine: string;
   bumpsTotal: number;
@@ -86,43 +157,36 @@ export async function POST(
     );
   }
 
-  // ---- Status check (the security gate) ----
-  let orderStatus: string;
-  try {
-    const status = await getCashfreeOrderStatus(orderId);
-    orderStatus = status.orderStatus;
-  } catch (err) {
-    console.error("[verify-payment] getCashfreeOrderStatus failed", err);
-    return NextResponse.json(
-      { success: false, error: "Could not verify payment with Cashfree" },
-      { status: 502 },
-    );
-  }
+  // ---- Poll Cashfree until paid (handles the order/payment status race) ----
+  const paid = await pollForPaidStatus(orderId);
+  console.log(
+    `[verify-payment] orderId=${orderId} attempts=${paid.attempts} isPaid=${paid.isPaid} finalOrderStatus=${paid.orderStatus} paymentId=${paid.paymentId ?? "<none>"}`,
+  );
 
-  if (orderStatus !== "PAID") {
+  if (!paid.isPaid) {
+    // Distinguish "Cashfree said not PAID" (400 — user/payment problem)
+    // from "couldn't reach Cashfree across all retries" (502 — infra problem).
+    if (paid.orderStatus === "UNKNOWN") {
+      return NextResponse.json(
+        { success: false, error: "Could not verify payment with Cashfree" },
+        { status: 502 },
+      );
+    }
     return NextResponse.json(
       {
         success: false,
         error: "Payment not completed",
-        code: `ORDER_STATUS_${orderStatus}`,
+        code: `ORDER_STATUS_${paid.orderStatus}`,
       },
       { status: 400 },
     );
   }
 
-  // ---- Pull the cf_payment_id for the successful payment ----
-  let paymentId = "";
-  try {
-    const payments = await getCashfreeOrderPayments(orderId);
-    const success = payments.find((p) => p.payment_status === "SUCCESS");
-    paymentId = success?.cf_payment_id ?? "";
-  } catch (err) {
-    console.warn(
-      "[verify-payment] getCashfreeOrderPayments failed — falling back to orderId",
-      err,
-    );
-  }
-  if (!paymentId) paymentId = orderId;
+  // cf_payment_id is what we pass downstream as the canonical payment ID
+  // (used as Meta event_id for dedup and as payment_id in Pabbly).
+  // Falls back to orderId when /payments hasn't surfaced the cf_payment_id
+  // yet but order_status is already PAID — rare but possible.
+  const paymentId = paid.paymentId ?? orderId;
 
   // ---- Dedup: if webhook already fired downstream for this order, no-op ----
   if (!tryClaimOrder(orderId)) {
