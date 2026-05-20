@@ -291,33 +291,46 @@ export function CheckoutForm({ config, mode }: Props) {
         return;
       }
 
-      // Manual Advanced Matching — set buyer identity on the pixel
-      // BEFORE the route change. Meta's auto-PageView fires on every
-      // SPA navigation, so MAM must be wired on the current pixel
-      // context before /thank-you's PageView goes out. Helper no-ops
-      // on non-production hosts because window.fbq is undefined there.
-      setMetaAdvancedMatching({
-        email: customer.email,
-        phone: customer.phone,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        city: customer.city,
-        country: customer.countryCode,
-      });
+      // Browser-side Meta firing must mirror the server CAPI gate
+      // EXACTLY, or Meta's dedup pair breaks:
+      //  - Domain gate is implicit (window.fbq is only defined when our
+      //    gated pixel init script ran — i.e. on export.ketanbizlife.in).
+      //  - Mode gate: order.mode is "production" only when CASHFREE_API_MODE=production.
+      //  - Amount gate: matches the server-side `grandTotal > 1` rule.
+      // If we skip either gate, the browser Purchase fires without a
+      // server CAPI pair and Meta counts it as a real conversion (plus
+      // MAM pollutes our pixel matching memory with test buyers).
+      const fireMetaBrowserEvents =
+        order.mode === "production" && grandTotal > 1;
 
-      // Browser-side standard `Purchase` paired with the server CAPI
-      // Purchase via matching eventID (= cf_payment_id). Meta dedupes
-      // them within 48h → counted as one Purchase. Without this pair,
-      // Meta's Auto Event Detection synthesises uncontrolled Purchase
-      // events with no eventID and inflates counts. MAM (above) fires
-      // first so this event inherits hashed identity for 9+/10 EMQ.
-      if (verified.paymentId) {
-        trackPurchasePixel({
-          paymentId: verified.paymentId,
-          value: grandTotal,
-          currency: config.brand.currency ?? "INR",
-          contentName: `${config.brand.name} Webinar`,
+      if (fireMetaBrowserEvents) {
+        // Manual Advanced Matching — set buyer identity on the pixel
+        // BEFORE the route change. Meta's auto-PageView fires on every
+        // SPA navigation, so MAM must be wired on the current pixel
+        // context before /thank-you's PageView goes out.
+        setMetaAdvancedMatching({
+          email: customer.email,
+          phone: customer.phone,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          city: customer.city,
+          country: customer.countryCode,
         });
+
+        // Browser-side standard `Purchase` paired with the server CAPI
+        // Purchase via matching eventID (= cf_payment_id). Meta dedupes
+        // them within 48h → counted as one Purchase. Without this pair,
+        // Meta's Auto Event Detection synthesises uncontrolled Purchase
+        // events with no eventID and inflates counts. MAM (above) fires
+        // first so this event inherits hashed identity for 9+/10 EMQ.
+        if (verified.paymentId) {
+          trackPurchasePixel({
+            paymentId: verified.paymentId,
+            value: grandTotal,
+            currency: config.brand.currency ?? "INR",
+            contentName: `${config.brand.name} Webinar`,
+          });
+        }
       }
 
       const utmQs = utmToQueryString(utm);
