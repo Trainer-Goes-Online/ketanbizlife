@@ -85,3 +85,57 @@ export function setMetaAdvancedMatching(data: AdvancedMatchingData): void {
   // pre-hash on the client; that would prevent Meta from matching.
   window.fbq("init", pixelId, matching);
 }
+
+/**
+ * Fire the Meta Pixel standard 'Purchase' event from the browser, paired
+ * with the server CAPI Purchase event of the same event_id for Meta's
+ * dedup window (48h).
+ *
+ * Why we fire from BOTH sides (browser + server):
+ *  - Server CAPI is the authoritative source (not blocked by ad blockers
+ *    or iOS tracking prevention) — guarantees every paid conversion is
+ *    counted.
+ *  - Browser pixel pairs with CAPI so Meta dedupes by event_id. Without
+ *    a browser pair, Meta's dedup coverage drops to 0% AND Meta's
+ *    Automatic Event Detection synthesises uncontrolled browser Purchase
+ *    events from page metadata — those have no eventID, can't be deduped,
+ *    and inflate the reported count.
+ *
+ * Per Meta dedup spec
+ * (https://developers.facebook.com/documentation/ads-commerce/conversions-api/deduplicate-pixel-and-server-events):
+ *   "Browser eventID must equal server event_id, and event_name must
+ *   match exactly. Both events must arrive within a 48-hour window."
+ *
+ * Call this AFTER setMetaAdvancedMatching so the Purchase event inherits
+ * the hashed identity for 9+/10 EMQ on the browser side. The same gating
+ * (window.fbq present) applies — so this no-ops on localhost / vercel.app
+ * preview URLs where the pixel script doesn't load.
+ *
+ * IMPORTANT: only call from the paid success path. If the server skips
+ * CAPI for free/test orders, the browser must skip too — otherwise the
+ * browser Purchase has no pair to dedupe against and counts as real.
+ */
+export function trackPurchasePixel(params: {
+  /** Used as eventID — MUST equal the server event_id (cf_payment_id). */
+  paymentId: string;
+  /** Numeric, major units (rupees). Same value as CAPI. */
+  value: number;
+  /** ISO 4217, e.g. 'INR'. */
+  currency?: string;
+  /** Display label in Events Manager. */
+  contentName?: string;
+}): void {
+  if (typeof window === "undefined") return;
+  if (typeof window.fbq !== "function") return;
+
+  window.fbq(
+    "track",
+    "Purchase",
+    {
+      value: params.value,
+      currency: params.currency ?? clientConfig.brand.currency ?? "INR",
+      content_name: params.contentName ?? `${clientConfig.brand.name} Webinar`,
+    },
+    { eventID: params.paymentId },
+  );
+}

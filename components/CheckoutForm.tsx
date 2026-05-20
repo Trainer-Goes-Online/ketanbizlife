@@ -6,7 +6,7 @@ import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { load, type Cashfree } from "@cashfreepayments/cashfree-js";
 import type { ClientConfig, CheckoutBump } from "@/client.config";
-import { setMetaAdvancedMatching } from "@/lib/analytics";
+import { setMetaAdvancedMatching, trackPurchasePixel } from "@/lib/analytics";
 import { readCookie, readUtmFromStorage, utmToQueryString } from "@/lib/utm";
 import type {
   CashfreeMode,
@@ -304,6 +304,21 @@ export function CheckoutForm({ config, mode }: Props) {
         city: customer.city,
         country: customer.countryCode,
       });
+
+      // Browser-side standard `Purchase` paired with the server CAPI
+      // Purchase via matching eventID (= cf_payment_id). Meta dedupes
+      // them within 48h → counted as one Purchase. Without this pair,
+      // Meta's Auto Event Detection synthesises uncontrolled Purchase
+      // events with no eventID and inflates counts. MAM (above) fires
+      // first so this event inherits hashed identity for 9+/10 EMQ.
+      if (verified.paymentId) {
+        trackPurchasePixel({
+          paymentId: verified.paymentId,
+          value: grandTotal,
+          currency: config.brand.currency ?? "INR",
+          contentName: `${config.brand.name} Webinar`,
+        });
+      }
 
       const utmQs = utmToQueryString(utm);
       router.push(
