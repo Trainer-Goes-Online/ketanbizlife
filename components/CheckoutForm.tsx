@@ -160,6 +160,41 @@ export function CheckoutForm({ config, mode }: Props) {
     };
   }, [mode]);
 
+  // Fire Meta Manual Advanced Matching as soon as the form is fully
+  // filled + valid — independent of whether the user actually pays.
+  // Pre-hashed identity is written to the kbl_mam cookie (30-day TTL)
+  // and attached to the pixel, so every subsequent PageView (this page,
+  // /thank-you, any return visit within 30 days) carries full hashed
+  // identity. Debounced 500ms so we don't fire mid-typing.
+  //
+  // This is purely additive — the payment-success path still re-fires
+  // MAM with the latest values + writes the cookie again.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const fullPhone = `${state.countryCode}${state.phone.trim()}`;
+    const fieldsFilled =
+      state.firstName.trim() &&
+      state.lastName.trim() &&
+      state.email.trim() &&
+      state.phone.trim() &&
+      state.city.trim();
+    if (!fieldsFilled) return;
+    const validationErrors = validate(state);
+    if (Object.keys(validationErrors).length > 0) return;
+
+    const timer = window.setTimeout(() => {
+      void setMetaAdvancedMatching({
+        email: state.email,
+        phone: fullPhone,
+        firstName: state.firstName,
+        lastName: state.lastName,
+        city: state.city,
+        country: "IN",
+      });
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setState((prev) => ({ ...prev, [key]: value }));
   }
@@ -308,7 +343,13 @@ export function CheckoutForm({ config, mode }: Props) {
         // BEFORE the route change. Meta's auto-PageView fires on every
         // SPA navigation, so MAM must be wired on the current pixel
         // context before /thank-you's PageView goes out.
-        setMetaAdvancedMatching({
+        //
+        // AWAIT here so the Web Crypto hashing + fbq init + cookie write
+        // all complete before we queue the next pixel event (Purchase)
+        // and before router.push triggers /thank-you's PageView. Without
+        // the await, trackPurchasePixel can fire on the pixel queue
+        // before MAM lands, costing us EMQ on the browser Purchase event.
+        await setMetaAdvancedMatching({
           email: customer.email,
           phone: customer.phone,
           firstName: customer.firstName,

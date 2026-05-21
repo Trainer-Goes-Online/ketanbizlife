@@ -66,15 +66,22 @@ export async function fireMetaCapiPurchase(args: {
 
   const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${pixelId}/events?access_token=${accessToken}`;
 
-  // ---- user_data: 6 hashed PII fields + 4 raw server-context fields ----
-  // Short Meta codes (em, ph, fn, ln, ct, country) per Meta's spec. All
-  // hashed values are SHA-256, lowercase hex. Normalization rules live
-  // in lib/hash.ts and match what client-side MAM normalizes pre-pixel.
+  // ---- user_data: 7 hashed PII fields + 4 raw server-context fields ----
+  // Short Meta codes (em, ph, fn, ln, ct, country, external_id) per
+  // Meta's spec. All hashed values are SHA-256, lowercase hex.
+  // Normalization rules live in lib/hash.ts and match what client-side
+  // MAM (lib/analytics.ts buildHashedMatching) normalizes pre-pixel,
+  // so the resulting hashes are byte-identical for the same user
+  // across browser and server. external_id = sha256(normalized email)
+  // gives Meta a stable, deterministic cross-channel join key worth
+  // ~21% EMQ uplift per their dataset suggestions.
+  const emailHash = sha256Lower(args.customer.email);
   const userData: Record<string, unknown> = {
-    em: [sha256Lower(args.customer.email)],
+    em: [emailHash],
     ph: [sha256Lower(normalizePhoneForCapi(args.customer.phone))],
     fn: [sha256Lower(args.customer.firstName)],
     ln: [sha256Lower(args.customer.lastName)],
+    external_id: [emailHash],
   };
   if (args.customer.city) {
     const normalizedCity = normalizeCityForCapi(args.customer.city);

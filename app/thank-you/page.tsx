@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Countdown } from "@/components/Countdown";
 import { FooterMini } from "@/components/FooterMini";
 import { Icon } from "@/components/Icon";
+import { MamReapply } from "@/components/MamReapply";
 import { clientConfig } from "@/client.config";
 import styles from "./page.module.css";
 
@@ -97,6 +98,11 @@ export default function ThankYouPage() {
 
   return (
     <div className={styles.page}>
+      {/* Safety net: re-fire MAM from kbl_mam cookie in case the inline
+          pixel script ran before the cookie was written during the
+          /checkout → /thank-you redirect. Renders nothing. */}
+      <MamReapply />
+
       <header className={styles.topNav}>
         <Link href={`/${clientConfig.funnel.slug}`} className={styles.back}>
           <span aria-hidden="true">←</span>

@@ -98,7 +98,13 @@ export default function RootLayout({
       <body>
         {children}
 
-        {/* Meta Pixel — base init, no auto PageView (handled by MetaPixelPageView below) */}
+        {/* Meta Pixel — base init + cookie-aware MAM re-init. PageView
+            is fired by MetaPixelPageView (client component, runs after
+            this inline script + on every route change). The cookie
+            read MUST happen BEFORE PageView so cold visitors who
+            previously filled the checkout form land with full hashed
+            identity attached to their PageView (boosts EMQ from ~5/10
+            to ~8/10 on return / post-form-fill PageViews). */}
         {metaPixelId ? (
           <>
             <Script id="meta-pixel-init" strategy="afterInteractive">
@@ -112,6 +118,15 @@ export default function RootLayout({
                 s.parentNode.insertBefore(t,s)}(window, document,'script',
                 'https://connect.facebook.net/en_US/fbevents.js');
                 fbq('init', '${metaPixelId}');
+                try {
+                  var m = document.cookie.match(/(?:^|;\\s*)kbl_mam=([^;]+)/);
+                  if (m) {
+                    var mam = JSON.parse(decodeURIComponent(m[1]));
+                    if (mam && typeof mam === 'object' && Object.keys(mam).length) {
+                      fbq('init', '${metaPixelId}', mam);
+                    }
+                  }
+                } catch (e) {}
               }`}
             </Script>
             <MetaPixelPageView productionDomain={productionDomain} />
