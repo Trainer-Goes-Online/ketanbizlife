@@ -188,12 +188,13 @@ export async function POST(
   // yet but order_status is already PAID — rare but possible.
   const paymentId = paid.paymentId ?? orderId;
 
-  // ---- Dedup: if webhook already fired downstream for this order, no-op ----
-  if (!tryClaimOrder(orderId)) {
-    return NextResponse.json({ success: true, paymentId });
-  }
-
-  // ---- Fire downstream non-blocking integrations ----
+  // ---- Fire downstream integrations ----
+  // Architecture note: verify-payment is the SOLE source of Meta CAPI
+  // events. The Cashfree webhook fires Pabbly only — it doesn't carry
+  // the browser context (IP, UA, fbc, fbp) Meta needs for high EMQ.
+  // Pabbly is fired by whichever path (verify-payment or webhook) wins
+  // the orderId claim; CAPI fires unconditionally here because it
+  // depends on this request's headers/body for full server-context.
   const safeBumpIds = Array.isArray(selectedBumpIds) ? selectedBumpIds : [];
   const { bumpsLine, bumpsTotal, bumpItems } = resolveBumps(safeBumpIds);
   const basePrice = clientConfig.pricing.price;
@@ -203,19 +204,24 @@ export async function POST(
   const clientIp = extractClientIp(request);
   const clientUserAgent = request.headers.get("user-agent") ?? "";
 
-  const pabblyPromise = firePabblyWebhook({
-    customer,
-    utm: utm ?? {},
-    paymentId,
-    orderId,
-    amount: serverGrandTotal,
-    basePrice,
-    bumpsTotal,
-    bumps: bumpsLine,
-    bumpItems,
-    currency: clientConfig.pricing.currency,
-    timezone: clientConfig.event.timezone,
-  });
+  // Pabbly dedup: webhook may have fired Pabbly already (cross-Lambda
+  // collisions still possible — Meta's event_id dedup handles CAPI).
+  const isFirstClaim = tryClaimOrder(orderId);
+  const pabblyPromise = isFirstClaim
+    ? firePabblyWebhook({
+        customer,
+        utm: utm ?? {},
+        paymentId,
+        orderId,
+        amount: serverGrandTotal,
+        basePrice,
+        bumpsTotal,
+        bumps: bumpsLine,
+        bumpItems,
+        currency: clientConfig.pricing.currency,
+        timezone: clientConfig.event.timezone,
+      })
+    : Promise.resolve();
 
   // CAPI fires only for REAL conversions: production domain + production
   // Cashfree mode + amount > ₹1 (skip test charges). Any single condition

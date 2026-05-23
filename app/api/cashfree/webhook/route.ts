@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 import {
   base64UrlDecode,
-  getCashfreeMode,
   verifyCashfreeWebhookSignature,
 } from "@/lib/cashfree";
 import { firePabblyWebhook, type PabblyBumpItem } from "@/lib/pabbly";
-import { fireMetaCapiPurchase } from "@/lib/capi";
 import { tryClaimOrder } from "@/lib/dedup";
-import { isProductionHost } from "@/lib/env";
 import { clientConfig } from "@/client.config";
 import type { CustomerPayload, UtmPayload } from "@/lib/types";
 
@@ -178,8 +175,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const utm = rebuildUtmFromTags(tags);
-  const fbc = tags.fbc;
-  const fbp = tags.fbp;
   const { bumpsLine, bumpsTotal, bumpItems } = resolveBumps(tags.bumps);
   const basePrice = clientConfig.pricing.price;
   const grandTotal =
@@ -192,7 +187,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   const currency =
     parsed.data?.order?.order_currency ?? clientConfig.pricing.currency;
 
-  const pabblyPromise = firePabblyWebhook({
+  // Webhook is Pabbly-only now. Meta CAPI is owned exclusively by the
+  // verify-payment route because that's the one route called from the
+  // user's browser — it has the full server-context (IP, UA, fbc, fbp)
+  // we need for 9.5+ EMQ. Firing CAPI here would ship events with
+  // those 4 fields blank, polluting Meta's match-quality scoring.
+  // Rare edge case (user closes browser before verify-payment runs)
+  // still gets fulfilled via this Pabbly fire — they lose Meta
+  // attribution only, not the email/Zoom link/sheet row.
+  await firePabblyWebhook({
     customer,
     utm,
     paymentId,
@@ -205,46 +208,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     currency,
     timezone: clientConfig.event.timezone,
   });
-
-  // CAPI fires only for REAL conversions: production domain + production
-  // Cashfree mode + amount > ₹1 (skip test charges).
-  const cashfreeMode = getCashfreeMode();
-  const onProductionDomain = isProductionHost(request);
-  const isRealCharge = grandTotal > 1;
-  const capiAllowed =
-    clientConfig.capi.enabled &&
-    onProductionDomain &&
-    cashfreeMode === "production" &&
-    isRealCharge;
-  if (clientConfig.capi.enabled && !capiAllowed) {
-    console.log(
-      `[cashfree-webhook] CAPI skipped — host=${request.headers.get("host")} (prod=${onProductionDomain}) mode=${cashfreeMode} amount=${grandTotal}`,
-    );
-  }
-  const capiPromise = capiAllowed
-    ? fireMetaCapiPurchase({
-        customer,
-        eventName: clientConfig.capi.eventName,
-        value: grandTotal,
-        currency,
-        paymentId,
-        // Webhook is hit by Cashfree's server, not the user's browser —
-        // no window.location to inherit from. Hardcode the production
-        // checkout URL as the source of the conversion.
-        eventSourceUrl: `https://${clientConfig.brand.domain}/checkout`,
-        kind: clientConfig.capi.kind,
-        clientIp: "",
-        clientUserAgent: "",
-        fbc,
-        fbp,
-      })
-    : Promise.resolve();
-
-  // Critical: on Vercel serverless, fire-and-forget promises are killed when
-  // the function returns. Await both before responding. Each has its own
-  // 5s timeout internally so a slow Pabbly/Meta can't hang the webhook past
-  // Cashfree's expected ack window.
-  await Promise.all([pabblyPromise, capiPromise]);
 
   return NextResponse.json({ received: true, acted: true });
 }
