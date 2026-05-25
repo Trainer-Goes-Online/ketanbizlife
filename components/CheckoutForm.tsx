@@ -285,6 +285,23 @@ export function CheckoutForm({ config, mode }: Props) {
       const verifyRes = await fetch("/api/cashfree/verify-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // keepalive: true is the critical bit for mobile reliability.
+        // Without it, when the user closes the Cashfree modal and immediately
+        // switches to WhatsApp / backgrounds the browser / closes the tab,
+        // the browser aborts in-flight fetches — including this one — and
+        // our server-side CAPI + Pabbly fires never run.
+        //
+        // With keepalive: true the browser keeps this request alive at the
+        // OS networking layer until the server responds, regardless of page
+        // lifecycle. Server-side processing (polling Cashfree, awaiting
+        // Pabbly + CAPI fires) completes normally; the response just gets
+        // discarded if no client is around to receive it.
+        //
+        // Spec: https://fetch.spec.whatwg.org/#dom-requestinit-keepalive
+        // Body cap is 64KB across all keepalive requests per page — we're
+        // at ~1KB so fine. Supported on all modern browsers: Chrome 66+,
+        // Safari iOS 13.4+, Firefox 111+, Edge 79+.
+        keepalive: true,
         body: JSON.stringify({
           orderId: order.orderId,
           customer,
