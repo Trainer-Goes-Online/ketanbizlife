@@ -170,11 +170,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   const rawTags = parsed.data?.order?.order_tags ?? null;
   const tags = decodeTags(rawTags);
 
-  // Browser context was snapshotted at create-order time and packed into
-  // the `ctx` order_tag. Without this hydration step the webhook would fire
-  // CAPI with blank IP/UA/fbc/fbp — exactly the EMQ-killing miss we're
-  // architecting around.
+  // Browser context was snapshotted at create-order time across TWO tags:
+  //   - `ua`  : raw User-Agent (its own tag because UAs alone push past
+  //              Cashfree's 256-char-per-value cap)
+  //   - `ctx` : packed JSON of {fbc, fbp, ip}
+  // eventSourceUrl is intentionally not stored — it falls back to the
+  // canonical /checkout URL on the brand domain a few lines below.
+  // Without these snapshots the webhook would fire CAPI with blank
+  // IP/UA/fbc/fbp — exactly the EMQ-killing miss this whole rewrite
+  // architects around.
   const ctx = unpackBrowserContext(tags.ctx);
+  const userAgentSnapshot = tags.ua ?? "";
 
   const fallback = {
     email: parsed.data?.customer_details?.customer_email,
@@ -231,21 +237,21 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   } else {
     capiAttempted = true;
-    // event_source_url falls back to the production checkout URL when the
-    // browser didn't snapshot one (legacy orders pre-this-change). Same
-    // pattern as verify-payment used; Meta needs *some* URL or it 400s.
-    const resolvedEventSourceUrl =
-      ctx.esrc || `https://${clientConfig.brand.domain}/checkout`;
+    // event_source_url is always the canonical checkout URL on the brand
+    // domain. We don't snapshot the per-request URL (e.g. with UTM
+    // params) because it would blow Cashfree's 256-char tag cap. Meta is
+    // permissive about event_source_url as long as it matches a domain
+    // registered against the pixel.
     capiOutcome = await fireMetaCapiPurchase({
       customer,
       eventName: clientConfig.capi.eventName,
       value: grandTotal,
       currency,
       paymentId,
-      eventSourceUrl: resolvedEventSourceUrl,
+      eventSourceUrl: `https://${clientConfig.brand.domain}/checkout`,
       kind: clientConfig.capi.kind,
       clientIp: ctx.ip ?? "",
-      clientUserAgent: ctx.ua ?? "",
+      clientUserAgent: userAgentSnapshot,
       fbc: ctx.fbc,
       fbp: ctx.fbp,
     });

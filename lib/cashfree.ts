@@ -51,14 +51,18 @@ export interface CashfreeOrderTags {
   em?: string;
   ph?: string;
   ci?: string;
-  cc?: string;
   bumps?: string;
   utm?: string;
-  base?: string;
-  grand?: string;
-  /** Packed JSON blob of browser context (fbc, fbp, ua, ip, esrc).
-   *  base64url-encoded by sanitizeTags on the way in. The webhook
-   *  decodes the value, then unpackBrowserContext() parses the JSON. */
+  /** User-Agent string for the browser that paid. Stored as its own tag
+   *  because real-world UAs (140+ chars) already push the per-tag-value
+   *  base64 size past 256 by themselves. Truncated to 180 raw chars at
+   *  pack time to guarantee the encoded value fits. */
+  ua?: string;
+  /** Packed JSON blob of the SMALL browser-context fields (fbc, fbp, ip).
+   *  UA lives in its own `ua` tag; eventSourceUrl is omitted entirely and
+   *  the webhook falls back to the canonical /checkout URL. Both choices
+   *  exist purely to keep the encoded value under Cashfree's 256-char
+   *  per-tag-value limit. */
   ctx?: string;
 }
 
@@ -74,9 +78,7 @@ export interface CashfreeOrderTags {
 export function packBrowserContext(input: {
   fbc?: string;
   fbp?: string;
-  ua?: string;
   ip?: string;
-  esrc?: string;
 }): string | undefined {
   const cleaned: Record<string, string> = {};
   for (const [k, v] of Object.entries(input)) {
@@ -95,9 +97,7 @@ export function packBrowserContext(input: {
 export function unpackBrowserContext(decoded: string | undefined): {
   fbc?: string;
   fbp?: string;
-  ua?: string;
   ip?: string;
-  esrc?: string;
 } {
   if (!decoded) return {};
   try {
@@ -159,10 +159,13 @@ function sanitizeTags(
   for (const [k, v] of Object.entries(tags)) {
     if (v === undefined || v === null || v === "") continue;
     const encoded = base64UrlEncode(String(v));
-    // Cashfree's per-tag value cap is 1024 chars. The packed `ctx` JSON
-    // blob (UA strings alone can be ~250 chars) routinely exceeds the old
-    // 256 cap, so we honor the real limit here.
-    if (encoded.length > 1024) continue;
+    // Cashfree's per-tag-value cap is 256 base64 chars (verified
+    // empirically — their API returns "order_tags : Invalid Map, max
+    // value length should be 256" otherwise). Values over the cap are
+    // silently dropped so the order itself still succeeds; callers
+    // are responsible for truncating values they care about (e.g. UA
+    // is truncated to 180 raw chars before being passed in).
+    if (encoded.length > 256) continue;
     out[k] = encoded;
   }
   return Object.keys(out).length > 0 ? out : undefined;

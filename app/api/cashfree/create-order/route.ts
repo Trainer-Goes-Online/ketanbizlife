@@ -51,8 +51,10 @@ export async function POST(
     fbc,
     fbp,
     userAgent,
-    eventSourceUrl,
   } = body;
+  // `eventSourceUrl` is intentionally not destructured: we no longer
+  // store it in order_tags (see comment below for why). The browser
+  // still sends the field, it just goes unread server-side.
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json(
@@ -102,31 +104,35 @@ export async function POST(
     `${customer.firstName} ${customer.lastName}`.trim() || customer.firstName;
 
   const utmSafe = utm ?? {};
-  // Snapshot the browser context (fbc, fbp, UA, IP, page URL) into a packed
-  // JSON blob now so the Cashfree webhook can rebuild it later. The webhook
-  // is hit by Cashfree's servers (no browser headers), so without this
-  // snapshot CAPI would fire with blank IP/UA and tank EMQ. Capturing at
-  // create-order time is mandatory because that's our last shot at the
-  // real browser request.
+  // Snapshot the browser context so the Cashfree webhook can rebuild the
+  // CAPI payload later. The webhook is hit by Cashfree's servers (no
+  // browser headers), so without this snapshot CAPI would fire with blank
+  // IP/UA and tank EMQ.
+  //
+  // Cashfree caps each order_tag value at 256 base64 chars and the whole
+  // map at 10 keys. UA strings alone (140+ chars) already push the packed
+  // JSON over the limit, so we split:
+  //   - `ua`  : raw UA truncated to 180 chars, encoded ≤ 240
+  //   - `ctx` : JSON of {fbc, fbp, ip} only
+  // eventSourceUrl is dropped entirely; the webhook falls back to the
+  // canonical /checkout URL on the brand domain (Meta is permissive about
+  // event_source_url so long as it matches the configured pixel domain).
+  // countryCode (`cc`) is dropped too — it's always "IN" here and the
+  // webhook already defaults to "IN" when the tag is missing.
   const clientIp = extractClientIp(request);
-  const ctx = packBrowserContext({
-    fbc,
-    fbp,
-    ua: userAgent,
-    ip: clientIp,
-    esrc: eventSourceUrl,
-  });
+  const ua = (userAgent ?? "").slice(0, 180);
+  const ctx = packBrowserContext({ fbc, fbp, ip: clientIp });
+  // 9 tags total. One slot of headroom inside Cashfree's 10-key limit.
+  // Adding any new tag requires dropping another or Cashfree returns 400.
   const orderTags: CashfreeOrderTags = {
     fn: customer.firstName,
     ln: customer.lastName,
     em: customer.email,
     ph: customer.phone,
     ci: customer.city,
-    cc: customer.countryCode,
     bumps: safeBumpIds.join(","),
     utm: JSON.stringify(utmSafe),
-    base: String(clientConfig.pricing.price),
-    grand: String(expected),
+    ua: ua || undefined,
     ctx,
   };
 
