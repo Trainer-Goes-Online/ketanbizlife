@@ -29,6 +29,16 @@ export async function firePabblyWebhook(args: {
   bumpItems: PabblyBumpItem[];
   currency: string;
   timezone: string;
+  /** Which server path fired this row. Currently always the Cashfree webhook. */
+  source: "webhook";
+  /** True iff a CAPI fire was attempted for this order (false when gated off). */
+  capiAttempted: boolean;
+  /** Result code from fireMetaCapiPurchase. "skipped" when gated, "err"/"timeout" on failure. */
+  capiOutcome: "ok" | "err" | "timeout" | "skipped";
+  /** Human-readable reason CAPI didn't reach Meta. Empty string when outcome === "ok". */
+  capiSkipReason: string;
+  /** ISO timestamp of when Cashfree's webhook hit this server (for latency debugging). */
+  cashfreeEventReceivedAt: string;
 }): Promise<void> {
   const url = process.env.PABBLY_WEBHOOK_URL;
   console.log(
@@ -101,6 +111,15 @@ export async function firePabblyWebhook(args: {
     utm_campaign: args.utm.utm_campaign ?? "",
     utm_content: args.utm.utm_content ?? "",
     utm_term: args.utm.utm_term ?? "",
+    // ---- Diagnostic columns (Google Sheet) ----
+    // `source` lets us prove every row came through the webhook now that
+    // verify-payment no longer fires Pabbly. The capi_* trio explains
+    // why Meta did/didn't see a given conversion at row-level granularity.
+    source: args.source,
+    capi_attempted: args.capiAttempted ? "true" : "false",
+    capi_outcome: args.capiOutcome,
+    capi_skip_reason: args.capiSkipReason,
+    cashfree_event_received_at: args.cashfreeEventReceivedAt,
   };
 
   const controller = new AbortController();

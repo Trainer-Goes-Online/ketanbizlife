@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   base64UrlDecode,
+  getCashfreeMode,
+  unpackBrowserContext,
   verifyCashfreeWebhookSignature,
 } from "@/lib/cashfree";
 import { firePabblyWebhook, type PabblyBumpItem } from "@/lib/pabbly";
+import { fireMetaCapiPurchase } from "@/lib/capi";
 import { tryClaimOrder } from "@/lib/dedup";
 import { clientConfig } from "@/client.config";
 import type { CustomerPayload, UtmPayload } from "@/lib/types";
@@ -154,13 +157,25 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ received: true, acted: false });
   }
 
-  // Dedup: verify-payment may already have fired for this order.
+  // Dedup: Cashfree can occasionally double-deliver the same webhook event
+  // (retries on transient 5xx, network blips). Guard Pabbly so we don't
+  // append a duplicate row. CAPI is intentionally not gated here because
+  // Meta dedupes server-side on event_id (= cf_payment_id) within a 48h
+  // window — and a same-Lambda double-claim is rare enough that we'd
+  // rather pay the duplicate request cost than risk a missed fire.
   if (!tryClaimOrder(orderId)) {
     return NextResponse.json({ received: true, acted: false, deduped: true });
   }
 
   const rawTags = parsed.data?.order?.order_tags ?? null;
   const tags = decodeTags(rawTags);
+
+  // Browser context was snapshotted at create-order time and packed into
+  // the `ctx` order_tag. Without this hydration step the webhook would fire
+  // CAPI with blank IP/UA/fbc/fbp — exactly the EMQ-killing miss we're
+  // architecting around.
+  const ctx = unpackBrowserContext(tags.ctx);
+
   const fallback = {
     email: parsed.data?.customer_details?.customer_email,
     phone: parsed.data?.customer_details?.customer_phone,
@@ -187,14 +202,62 @@ export async function POST(request: Request): Promise<NextResponse> {
   const currency =
     parsed.data?.order?.order_currency ?? clientConfig.pricing.currency;
 
-  // Webhook is Pabbly-only now. Meta CAPI is owned exclusively by the
-  // verify-payment route because that's the one route called from the
-  // user's browser — it has the full server-context (IP, UA, fbc, fbp)
-  // we need for 9.5+ EMQ. Firing CAPI here would ship events with
-  // those 4 fields blank, polluting Meta's match-quality scoring.
-  // Rare edge case (user closes browser before verify-payment runs)
-  // still gets fulfilled via this Pabbly fire — they lose Meta
-  // attribution only, not the email/Zoom link/sheet row.
+  // ---- CAPI gating ----
+  // Critically, NO isProductionHost check here: this route is invoked by
+  // Cashfree's servers, not by the brand domain. Host-based gating would
+  // block every webhook-driven fire. Real-vs-test is gated by
+  // CASHFREE_API_MODE instead — sandbox payments can't fire CAPI.
+  const cashfreeMode = getCashfreeMode();
+  const isRealCharge = grandTotal > 1;
+  const capiAllowed =
+    clientConfig.capi.enabled &&
+    cashfreeMode === "production" &&
+    isRealCharge;
+
+  let capiAttempted = false;
+  let capiOutcome: "ok" | "err" | "timeout" | "skipped" = "skipped";
+  let capiSkipReason = "";
+
+  if (!capiAllowed) {
+    if (!clientConfig.capi.enabled) {
+      capiSkipReason = "capi_disabled";
+    } else if (cashfreeMode !== "production") {
+      capiSkipReason = "not_production_mode";
+    } else if (!isRealCharge) {
+      capiSkipReason = "amount_below_threshold";
+    }
+    console.log(
+      `[cashfree-webhook] CAPI skipped — order=${orderId} reason=${capiSkipReason} mode=${cashfreeMode} amount=${grandTotal}`,
+    );
+  } else {
+    capiAttempted = true;
+    // event_source_url falls back to the production checkout URL when the
+    // browser didn't snapshot one (legacy orders pre-this-change). Same
+    // pattern as verify-payment used; Meta needs *some* URL or it 400s.
+    const resolvedEventSourceUrl =
+      ctx.esrc || `https://${clientConfig.brand.domain}/checkout`;
+    capiOutcome = await fireMetaCapiPurchase({
+      customer,
+      eventName: clientConfig.capi.eventName,
+      value: grandTotal,
+      currency,
+      paymentId,
+      eventSourceUrl: resolvedEventSourceUrl,
+      kind: clientConfig.capi.kind,
+      clientIp: ctx.ip ?? "",
+      clientUserAgent: ctx.ua ?? "",
+      fbc: ctx.fbc,
+      fbp: ctx.fbp,
+    });
+  }
+
+  const cashfreeEventReceivedAt = new Date().toISOString();
+
+  // Pabbly is the single source of truth for the Google Sheet now. The
+  // capi_* diagnostic columns let us audit exactly why any given row's
+  // Meta event did/didn't fire. Pabbly fire happens unconditionally
+  // (provided we won the tryClaimOrder above) so the sheet stays complete
+  // even when CAPI is gated off.
   await firePabblyWebhook({
     customer,
     utm,
@@ -207,7 +270,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     bumpItems,
     currency,
     timezone: clientConfig.event.timezone,
+    source: "webhook",
+    capiAttempted,
+    capiOutcome,
+    capiSkipReason,
+    cashfreeEventReceivedAt,
   });
 
+  // Always 200 to Cashfree. A non-200 here would trigger retries which,
+  // post-tryClaimOrder cache TTL or across Lambdas, could duplicate the
+  // Pabbly row. CAPI failures are already captured in the Pabbly row
+  // (`capi_outcome`) and Vercel logs — we don't need to involve Cashfree.
   return NextResponse.json({ received: true, acted: true });
 }

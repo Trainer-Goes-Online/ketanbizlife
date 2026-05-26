@@ -30,6 +30,14 @@ export interface CreateOrderRequest {
   /** IDs of selected checkout bumps (server resolves to titles/prices) */
   selectedBumpIds: string[];
   utm: UtmPayload;
+  /** Facebook click-id cookie (snapshotted into order_tags for the webhook-side CAPI fire) */
+  fbc?: string;
+  /** Facebook browser-id cookie (snapshotted into order_tags for the webhook-side CAPI fire) */
+  fbp?: string;
+  /** navigator.userAgent at submit time (snapshotted into order_tags for the webhook-side CAPI fire) */
+  userAgent?: string;
+  /** window.location.href at submit time (snapshotted into order_tags for the webhook-side CAPI fire) */
+  eventSourceUrl?: string;
 }
 
 export interface CreateOrderResponse {

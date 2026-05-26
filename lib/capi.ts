@@ -51,7 +51,7 @@ export async function fireMetaCapiPurchase(args: {
   clientUserAgent: string;
   fbc?: string;
   fbp?: string;
-}): Promise<void> {
+}): Promise<"ok" | "err" | "timeout" | "skipped"> {
   const pixelId = process.env.META_PIXEL_ID;
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
   console.log(
@@ -61,7 +61,7 @@ export async function fireMetaCapiPurchase(args: {
     console.warn(
       "[capi] META_PIXEL_ID or META_CAPI_ACCESS_TOKEN not set — skipping CAPI fire",
     );
-    return;
+    return "skipped";
   }
 
   const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${pixelId}/events?access_token=${accessToken}`;
@@ -138,17 +138,20 @@ export async function fireMetaCapiPurchase(args: {
       console.warn(
         `[capi] Meta returned ${res.status} for payment ${args.paymentId}: ${text}`,
       );
-    } else {
-      const respBody = await res.text().catch(() => "<no body>");
-      console.log(
-        `[capi] Meta CAPI OK ${res.status} for payment ${args.paymentId} resp=${respBody.slice(0, 200)}`,
-      );
+      return "err";
     }
+    const respBody = await res.text().catch(() => "<no body>");
+    console.log(
+      `[capi] Meta CAPI OK ${res.status} for payment ${args.paymentId} resp=${respBody.slice(0, 200)}`,
+    );
+    return "ok";
   } catch (err) {
     console.warn(
       `[capi] Meta CAPI fire failed for payment ${args.paymentId}:`,
       err instanceof Error ? err.message : err,
     );
+    if (err instanceof Error && err.name === "AbortError") return "timeout";
+    return "err";
   } finally {
     clearTimeout(timeoutId);
   }

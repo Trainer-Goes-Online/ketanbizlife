@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import {
   createCashfreeOrder,
   getCashfreeMode,
+  packBrowserContext,
   type CashfreeOrderTags,
 } from "@/lib/cashfree";
 import { clientConfig } from "@/client.config";
 import { sha256Lower } from "@/lib/hash";
+import { extractClientIp } from "@/lib/http";
 import type {
   ApiErrorResponse,
   CreateOrderRequest,
@@ -40,7 +42,17 @@ export async function POST(
     );
   }
 
-  const { amount, currency, customer, selectedBumpIds, utm } = body;
+  const {
+    amount,
+    currency,
+    customer,
+    selectedBumpIds,
+    utm,
+    fbc,
+    fbp,
+    userAgent,
+    eventSourceUrl,
+  } = body;
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json(
@@ -90,6 +102,20 @@ export async function POST(
     `${customer.firstName} ${customer.lastName}`.trim() || customer.firstName;
 
   const utmSafe = utm ?? {};
+  // Snapshot the browser context (fbc, fbp, UA, IP, page URL) into a packed
+  // JSON blob now so the Cashfree webhook can rebuild it later. The webhook
+  // is hit by Cashfree's servers (no browser headers), so without this
+  // snapshot CAPI would fire with blank IP/UA and tank EMQ. Capturing at
+  // create-order time is mandatory because that's our last shot at the
+  // real browser request.
+  const clientIp = extractClientIp(request);
+  const ctx = packBrowserContext({
+    fbc,
+    fbp,
+    ua: userAgent,
+    ip: clientIp,
+    esrc: eventSourceUrl,
+  });
   const orderTags: CashfreeOrderTags = {
     fn: customer.firstName,
     ln: customer.lastName,
@@ -101,6 +127,7 @@ export async function POST(
     utm: JSON.stringify(utmSafe),
     base: String(clientConfig.pricing.price),
     grand: String(expected),
+    ctx,
   };
 
   try {

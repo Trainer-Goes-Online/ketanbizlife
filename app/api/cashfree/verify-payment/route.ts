@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
 import {
-  getCashfreeMode,
   getCashfreeOrderPayments,
   getCashfreeOrderStatus,
 } from "@/lib/cashfree";
-import { firePabblyWebhook, type PabblyBumpItem } from "@/lib/pabbly";
-import { fireMetaCapiPurchase } from "@/lib/capi";
-import { tryClaimOrder } from "@/lib/dedup";
-import { isProductionHost } from "@/lib/env";
-import { clientConfig } from "@/client.config";
 import type {
   ApiErrorResponse,
   VerifyPaymentRequest,
@@ -17,15 +11,6 @@ import type {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function extractClientIp(request: Request): string {
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return request.headers.get("x-real-ip") ?? "";
-}
 
 /**
  * Cashfree's payment lifecycle has two state machines that update at
@@ -98,28 +83,19 @@ async function pollForPaidStatus(orderId: string): Promise<{
   };
 }
 
-function resolveBumps(selectedBumpIds: string[]): {
-  bumpsLine: string;
-  bumpsTotal: number;
-  bumpItems: PabblyBumpItem[];
-} {
-  const matched = selectedBumpIds
-    .map((id) => clientConfig.checkout.bumps.find((b) => b.id === id))
-    .filter((b): b is NonNullable<typeof b> => Boolean(b));
-
-  const bumpsLine =
-    matched.length > 0
-      ? matched.map((b) => `${b.title} (₹${b.price})`).join("; ")
-      : "none";
-  const bumpsTotal = matched.reduce((sum, b) => sum + b.price, 0);
-  const bumpItems: PabblyBumpItem[] = matched.map((b) => ({
-    id: b.id,
-    title: b.title,
-    price: b.price,
-  }));
-  return { bumpsLine, bumpsTotal, bumpItems };
-}
-
+/**
+ * Authoritative payment-confirmation gate for the browser.
+ *
+ * Architecture note: this route is now ONLY a "is it paid yet?" probe.
+ * Pabbly + Meta CAPI are owned exclusively by /api/cashfree/webhook because
+ * mobile UPI Intent users almost never return to the browser after paying —
+ * any side-effect tied to the browser fetch was missing ~75% of conversions.
+ *
+ * The Cashfree webhook is hit by Cashfree's servers regardless of what the
+ * browser does, so it always fires. Browser context (IP/UA/fbc/fbp) is
+ * snapshotted into Cashfree order_tags at create-order time so the webhook
+ * can rebuild the full CAPI payload without needing this request's headers.
+ */
 export async function POST(
   request: Request,
 ): Promise<NextResponse<VerifyPaymentResponse | ApiErrorResponse>> {
@@ -133,23 +109,16 @@ export async function POST(
     );
   }
 
-  const {
-    orderId,
-    customer,
-    utm,
-    fbc,
-    fbp,
-    selectedBumpIds,
-    grandTotal,
-    eventSourceUrl,
-  } = body;
+  const { orderId, customer } = body;
 
+  // We still require `customer` so we know this is a real submit and not
+  // a probe / replay. We don't use the customer payload for any side-effect
+  // here; the webhook reads identity from order_tags instead.
   if (
     !orderId ||
     !customer ||
     !customer.email ||
-    !customer.phone ||
-    typeof grandTotal !== "number"
+    !customer.phone
   ) {
     return NextResponse.json(
       { success: false, error: "Missing required fields" },
@@ -157,7 +126,6 @@ export async function POST(
     );
   }
 
-  // ---- Poll Cashfree until paid (handles the order/payment status race) ----
   const paid = await pollForPaidStatus(orderId);
   console.log(
     `[verify-payment] orderId=${orderId} attempts=${paid.attempts} isPaid=${paid.isPaid} finalOrderStatus=${paid.orderStatus} paymentId=${paid.paymentId ?? "<none>"}`,
@@ -182,93 +150,12 @@ export async function POST(
     );
   }
 
-  // cf_payment_id is what we pass downstream as the canonical payment ID
-  // (used as Meta event_id for dedup and as payment_id in Pabbly).
-  // Falls back to orderId when /payments hasn't surfaced the cf_payment_id
-  // yet but order_status is already PAID — rare but possible.
+  // cf_payment_id is what the browser uses as Meta event_id for the
+  // browser-side Purchase pixel (paired with the server CAPI fire via
+  // matching event_id). Falls back to orderId when /payments hasn't
+  // surfaced the cf_payment_id yet but order_status is already PAID —
+  // rare but possible.
   const paymentId = paid.paymentId ?? orderId;
-
-  // ---- Fire downstream integrations ----
-  // Architecture note: verify-payment is the SOLE source of Meta CAPI
-  // events. The Cashfree webhook fires Pabbly only — it doesn't carry
-  // the browser context (IP, UA, fbc, fbp) Meta needs for high EMQ.
-  // Pabbly is fired by whichever path (verify-payment or webhook) wins
-  // the orderId claim; CAPI fires unconditionally here because it
-  // depends on this request's headers/body for full server-context.
-  const safeBumpIds = Array.isArray(selectedBumpIds) ? selectedBumpIds : [];
-  const { bumpsLine, bumpsTotal, bumpItems } = resolveBumps(safeBumpIds);
-  const basePrice = clientConfig.pricing.price;
-  // Trust the server-side resolved total over anything from the client.
-  const serverGrandTotal = basePrice + bumpsTotal;
-
-  const clientIp = extractClientIp(request);
-  const clientUserAgent = request.headers.get("user-agent") ?? "";
-
-  // Pabbly dedup: webhook may have fired Pabbly already (cross-Lambda
-  // collisions still possible — Meta's event_id dedup handles CAPI).
-  const isFirstClaim = tryClaimOrder(orderId);
-  const pabblyPromise = isFirstClaim
-    ? firePabblyWebhook({
-        customer,
-        utm: utm ?? {},
-        paymentId,
-        orderId,
-        amount: serverGrandTotal,
-        basePrice,
-        bumpsTotal,
-        bumps: bumpsLine,
-        bumpItems,
-        currency: clientConfig.pricing.currency,
-        timezone: clientConfig.event.timezone,
-      })
-    : Promise.resolve();
-
-  // CAPI fires only for REAL conversions: production domain + production
-  // Cashfree mode + amount > ₹1 (skip test charges). Any single condition
-  // missing blocks the fire so Meta never sees sandbox / test traffic.
-  const cashfreeMode = getCashfreeMode();
-  const onProductionDomain = isProductionHost(request);
-  const isRealCharge = serverGrandTotal > 1;
-  const capiAllowed =
-    clientConfig.capi.enabled &&
-    onProductionDomain &&
-    cashfreeMode === "production" &&
-    isRealCharge;
-  if (clientConfig.capi.enabled && !capiAllowed) {
-    console.log(
-      `[verify-payment] CAPI skipped — host=${request.headers.get("host")} (prod=${onProductionDomain}) mode=${cashfreeMode} amount=${serverGrandTotal}`,
-    );
-  }
-  // event_source_url comes from the client (window.location.href in
-  // CheckoutForm). Fall back to the production checkout URL when the
-  // client didn't send it — required by Meta CAPI for matching +
-  // restricted-category compliance.
-  const resolvedEventSourceUrl =
-    eventSourceUrl ||
-    `https://${clientConfig.brand.domain}/checkout`;
-
-  const capiPromise = capiAllowed
-    ? fireMetaCapiPurchase({
-        customer,
-        eventName: clientConfig.capi.eventName,
-        value: serverGrandTotal,
-        currency: clientConfig.pricing.currency,
-        paymentId,
-        eventSourceUrl: resolvedEventSourceUrl,
-        kind: clientConfig.capi.kind,
-        clientIp,
-        clientUserAgent,
-        fbc,
-        fbp,
-      })
-    : Promise.resolve();
-
-  // Critical: on Vercel serverless, fire-and-forget promises are killed when
-  // the function returns. We MUST await before responding so the network
-  // round-trips actually complete. Both fires are internally try/catch'd and
-  // have 5s AbortController timeouts, so neither can hang verify-payment
-  // longer than the Vercel function limit.
-  await Promise.all([pabblyPromise, capiPromise]);
 
   return NextResponse.json({ success: true, paymentId });
 }

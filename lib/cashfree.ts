@@ -54,10 +54,58 @@ export interface CashfreeOrderTags {
   cc?: string;
   bumps?: string;
   utm?: string;
-  fbc?: string;
-  fbp?: string;
   base?: string;
   grand?: string;
+  /** Packed JSON blob of browser context (fbc, fbp, ua, ip, esrc).
+   *  base64url-encoded by sanitizeTags on the way in. The webhook
+   *  decodes the value, then unpackBrowserContext() parses the JSON. */
+  ctx?: string;
+}
+
+/**
+ * Pack browser-context fields into a single JSON string suitable for stuffing
+ * into a Cashfree order_tag value. Keys with empty/undefined values are
+ * dropped. Returns undefined when there's nothing to pack so the caller can
+ * skip the tag entirely.
+ *
+ * The returned string is plain JSON; sanitizeTags() base64url-encodes it
+ * before sending to Cashfree (their order_tag regex doesn't accept `{` `}`).
+ */
+export function packBrowserContext(input: {
+  fbc?: string;
+  fbp?: string;
+  ua?: string;
+  ip?: string;
+  esrc?: string;
+}): string | undefined {
+  const cleaned: Record<string, string> = {};
+  for (const [k, v] of Object.entries(input)) {
+    if (v && v.length > 0) cleaned[k] = v;
+  }
+  if (Object.keys(cleaned).length === 0) return undefined;
+  return JSON.stringify(cleaned);
+}
+
+/**
+ * Inverse of packBrowserContext. Accepts the base64url-DECODED string (the
+ * webhook handler does that step via decodeTags) and returns the parsed
+ * context object. Returns an empty object for missing/invalid input — the
+ * caller is expected to treat each field as optional.
+ */
+export function unpackBrowserContext(decoded: string | undefined): {
+  fbc?: string;
+  fbp?: string;
+  ua?: string;
+  ip?: string;
+  esrc?: string;
+} {
+  if (!decoded) return {};
+  try {
+    const parsed = JSON.parse(decoded);
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 export interface CreateCashfreeOrderArgs {
@@ -111,7 +159,10 @@ function sanitizeTags(
   for (const [k, v] of Object.entries(tags)) {
     if (v === undefined || v === null || v === "") continue;
     const encoded = base64UrlEncode(String(v));
-    if (encoded.length > 256) continue; // safety net; values are short
+    // Cashfree's per-tag value cap is 1024 chars. The packed `ctx` JSON
+    // blob (UA strings alone can be ~250 chars) routinely exceeds the old
+    // 256 cap, so we honor the real limit here.
+    if (encoded.length > 1024) continue;
     out[k] = encoded;
   }
   return Object.keys(out).length > 0 ? out : undefined;
