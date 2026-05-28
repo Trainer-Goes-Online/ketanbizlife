@@ -220,6 +220,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     cashfreeMode === "production" &&
     isRealCharge;
 
+  // event_source_url is always the canonical checkout URL on the brand domain.
+  // We don't snapshot the per-request URL (e.g. with UTM params) because it
+  // would blow Cashfree's 256-char tag cap. Meta is permissive about
+  // event_source_url as long as it matches a domain registered against the
+  // pixel. Shared by the server CAPI fire and the Pabbly enrichment so both
+  // report the same URL.
+  const eventSourceUrl = `https://${clientConfig.brand.domain}/checkout`;
+  // is_test mirrors the inverse of the CAPI real-charge gate: sandbox mode or
+  // sub-₹1 charges are tests. Feeds the Pabbly is_test column.
+  const isTest = !(cashfreeMode === "production" && isRealCharge);
+
   let capiAttempted = false;
   let capiOutcome: "ok" | "err" | "timeout" | "skipped" = "skipped";
   let capiSkipReason = "";
@@ -237,18 +248,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   } else {
     capiAttempted = true;
-    // event_source_url is always the canonical checkout URL on the brand
-    // domain. We don't snapshot the per-request URL (e.g. with UTM
-    // params) because it would blow Cashfree's 256-char tag cap. Meta is
-    // permissive about event_source_url as long as it matches a domain
-    // registered against the pixel.
     capiOutcome = await fireMetaCapiPurchase({
       customer,
       eventName: clientConfig.capi.eventName,
       value: grandTotal,
       currency,
       paymentId,
-      eventSourceUrl: `https://${clientConfig.brand.domain}/checkout`,
+      eventSourceUrl,
       kind: clientConfig.capi.kind,
       clientIp: ctx.ip ?? "",
       clientUserAgent: userAgentSnapshot,
@@ -281,6 +287,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     capiOutcome,
     capiSkipReason,
     cashfreeEventReceivedAt,
+    // CAPI downstream-feedback enrichment — identity signals rebuilt from the
+    // order_tags snapshot so the CRM sheet can fire high-EMQ lifecycle events.
+    fbc: ctx.fbc ?? "",
+    fbp: ctx.fbp ?? "",
+    clientIpAddress: ctx.ip ?? "",
+    clientUserAgent: userAgentSnapshot,
+    eventSourceUrl,
+    isTest,
   });
 
   // Always 200 to Cashfree. A non-200 here would trigger retries which,

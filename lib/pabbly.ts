@@ -1,3 +1,4 @@
+import { sha256Lower } from "./hash";
 import type { CustomerPayload, UtmPayload } from "./types";
 
 export interface PabblyBumpItem {
@@ -8,6 +9,19 @@ export interface PabblyBumpItem {
 
 /** Max number of flat bump_N_* slots emitted in the payload. */
 const MAX_BUMP_SLOTS = 4;
+
+/**
+ * Meta's `_fbc` cookie is formatted `fb.{subdomainIndex}.{creationTime}.{fbclid}`.
+ * The raw fbclid is everything after the third dot. Returns "" when fbc is
+ * absent or malformed. The fbclid itself can legitimately contain dots, so we
+ * rejoin the tail rather than taking a single segment.
+ */
+function deriveFbclidFromFbc(fbc: string): string {
+  if (!fbc) return "";
+  const parts = fbc.split(".");
+  if (parts.length < 4 || parts[0] !== "fb") return "";
+  return parts.slice(3).join(".");
+}
 
 /**
  * Fire-and-forget POST to the Pabbly Connect webhook. Failures are logged but
@@ -39,6 +53,19 @@ export async function firePabblyWebhook(args: {
   capiSkipReason: string;
   /** ISO timestamp of when Cashfree's webhook hit this server (for latency debugging). */
   cashfreeEventReceivedAt: string;
+  // ---- CAPI downstream-feedback enrichment (SOP fields 9-14, 16-17, 23) ----
+  /** Raw `_fbc` cookie value snapshotted at create-order, or "" when absent. */
+  fbc: string;
+  /** Raw `_fbp` cookie value snapshotted at create-order, or "" when absent. */
+  fbp: string;
+  /** Client IP captured from x-forwarded-for at create-order time. */
+  clientIpAddress: string;
+  /** Client User-Agent captured at create-order time (truncated upstream). */
+  clientUserAgent: string;
+  /** Canonical conversion page URL (the checkout page on the brand domain). */
+  eventSourceUrl: string;
+  /** True for sandbox or sub-₹1 test charges; drives the is_test column. */
+  isTest: boolean;
 }): Promise<void> {
   const url = process.env.PABBLY_WEBHOOK_URL;
   console.log(
@@ -111,6 +138,24 @@ export async function firePabblyWebhook(args: {
     utm_campaign: args.utm.utm_campaign ?? "",
     utm_content: args.utm.utm_content ?? "",
     utm_term: args.utm.utm_term ?? "",
+    // ---- CAPI downstream-feedback enrichment ----
+    // These feed the CRM sheet (cols A–W) that the Apps Script reads to fire
+    // LeadShowUp / QualifiedLead / HighTicketPurchase. lead_id + created_at +
+    // purchase_event_id are aliases of values already in this payload; the
+    // identity fields (fbc/fbp/ip/ua/external_id) are what give the downstream
+    // events 9+ EMQ. external_id uses the same sha256(lowercase(email)) as the
+    // server CAPI so the events match. fbclid is parsed out of the _fbc cookie.
+    lead_id: args.paymentId,
+    created_at: now.toISOString(),
+    fbc: args.fbc,
+    fbp: args.fbp,
+    client_ip_address: args.clientIpAddress,
+    client_user_agent: args.clientUserAgent,
+    external_id: args.customer.email ? sha256Lower(args.customer.email) : "",
+    event_source_url: args.eventSourceUrl,
+    is_test: args.isTest ? "true" : "false",
+    purchase_event_id: args.paymentId,
+    fbclid: deriveFbclidFromFbc(args.fbc),
     // ---- Diagnostic columns (Google Sheet) ----
     // `source` lets us prove every row came through the webhook now that
     // verify-payment no longer fires Pabbly. The capi_* trio explains
