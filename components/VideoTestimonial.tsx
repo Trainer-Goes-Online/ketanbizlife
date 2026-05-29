@@ -9,9 +9,6 @@ interface Props {
   wistiaId?: string;
   /** Vimeo video ID. Vimeo always renders as an iframe. */
   vimeoId?: string;
-  /** Full Tella embed iframe src. Renders as an iframe (like Vimeo). Tella
-   *  locks the embed to the brand domain, so it only plays in production. */
-  tellaEmbedUrl?: string;
   /** Direct MP4 URL extracted from Wistia metadata (server-side fetched).
    *  When set, we render an HTML5 <video> element — this is the only
    *  reliable mobile autoplay-with-sound path. */
@@ -48,7 +45,6 @@ const DESKTOP_BREAKPOINT = "(min-width: 1024px)";
 export function VideoTestimonial({
   wistiaId,
   vimeoId,
-  tellaEmbedUrl,
   mp4Url,
   thumbnail,
 }: Props) {
@@ -75,7 +71,7 @@ export function VideoTestimonial({
     };
   }, [modalOpen]);
 
-  const hasVideo = Boolean(mp4Url || vimeoId || wistiaId || tellaEmbedUrl);
+  const hasVideo = Boolean(mp4Url || vimeoId || wistiaId);
 
   if (!hasVideo) {
     return (
@@ -101,14 +97,6 @@ export function VideoTestimonial({
   ) : vimeoId ? (
     <iframe
       src={`https://player.vimeo.com/video/${vimeoId}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&color=2F6BFF`}
-      title="Testimonial video"
-      allow="autoplay; fullscreen"
-      allowFullScreen
-      className={styles.inlineIframe}
-    />
-  ) : tellaEmbedUrl ? (
-    <iframe
-      src={tellaEmbedUrl}
       title="Testimonial video"
       allow="autoplay; fullscreen"
       allowFullScreen

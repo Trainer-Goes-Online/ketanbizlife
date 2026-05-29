@@ -104,7 +104,16 @@ async function getVimeoThumbnail(vimeoId: string): Promise<string> {
   try {
     const res = await fetch(
       `https://vimeo.com/api/oembed.json?url=https://vimeo.com/${vimeoId}&width=720&height=1280`,
-      { next: { revalidate: 60 * 60 * 24 } },
+      {
+        // Some (esp. recently-uploaded) Vimeo videos only return thumbnail_url
+        // via oembed when the request carries a browser User-Agent; without it
+        // the poster comes back empty. Harmless for videos that don't need it.
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        },
+        next: { revalidate: 60 * 60 * 24 },
+      },
     );
     if (!res.ok) return "";
     const data = (await res.json()) as VimeoOembedJson;
@@ -119,11 +128,7 @@ export async function TestimonialsSection({ testimonials }: Props) {
     testimonials.videos.map(async (video) => {
       let thumbnail = "";
       let mp4Url: string | undefined;
-      if (video.tellaEmbedUrl) {
-        // Tella locks its embed to the brand domain and exposes no fetchable
-        // portrait poster, so we use the static thumbnail shipped in /public.
-        thumbnail = video.thumbnailSrc ?? "";
-      } else if (video.wistiaId) {
+      if (video.wistiaId) {
         const assets = await getWistiaAssets(video.wistiaId);
         thumbnail = assets.thumbnail;
         mp4Url = assets.mp4Url;
@@ -157,7 +162,6 @@ export async function TestimonialsSection({ testimonials }: Props) {
               <VideoTestimonial
                 wistiaId={video.wistiaId}
                 vimeoId={video.vimeoId}
-                tellaEmbedUrl={video.tellaEmbedUrl}
                 mp4Url={video.mp4Url}
                 thumbnail={video.thumbnail}
               />
