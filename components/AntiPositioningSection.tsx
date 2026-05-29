@@ -18,13 +18,16 @@ export function AntiPositioningSection({ anti }: Props) {
 
         <ul className={styles.list}>
           {anti.items.map((item, i) => (
-            <ScrollReveal key={i} delay={0.05 + i * 0.07}>
-              <li className={styles.item}>
-                <span className={styles.cross} aria-hidden="true">
-                  ×
-                </span>
-                <span className={styles.text}>{item}</span>
-              </li>
+            <ScrollReveal
+              as="li"
+              key={i}
+              delay={0.05 + i * 0.07}
+              className={styles.item}
+            >
+              <span className={styles.cross} aria-hidden="true">
+                ×
+              </span>
+              <span className={styles.text}>{item}</span>
             </ScrollReveal>
           ))}
         </ul>

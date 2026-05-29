@@ -25,34 +25,37 @@ export function FaqSection({ faq }: Props) {
           {faq.items.map((item, i) => {
             const isOpen = openIndex === i;
             return (
-              <ScrollReveal key={i} delay={0.04 + i * 0.04}>
-                <li className={`${styles.item} ${isOpen ? styles.open : ""}`}>
-                  <button
-                    type="button"
-                    className={styles.trigger}
-                    onClick={() => setOpenIndex(isOpen ? null : i)}
-                    aria-expanded={isOpen}
-                    aria-controls={`faq-panel-${i}`}
-                    id={`faq-trigger-${i}`}
-                  >
-                    <span className={styles.question}>{item.question}</span>
-                    <span className={styles.icon} aria-hidden="true">
-                      <span className={styles.iconBar} />
-                      <span className={`${styles.iconBar} ${styles.iconBarV}`} />
-                    </span>
-                  </button>
-                  <div
-                    id={`faq-panel-${i}`}
-                    role="region"
-                    aria-labelledby={`faq-trigger-${i}`}
-                    aria-hidden={!isOpen}
-                    className={styles.panel}
-                  >
-                    <div className={styles.panelInner}>
-                      <p className={styles.answer}>{item.answer}</p>
-                    </div>
+              <ScrollReveal
+                as="li"
+                key={i}
+                delay={0.04 + i * 0.04}
+                className={`${styles.item} ${isOpen ? styles.open : ""}`}
+              >
+                <button
+                  type="button"
+                  className={styles.trigger}
+                  onClick={() => setOpenIndex(isOpen ? null : i)}
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-panel-${i}`}
+                  id={`faq-trigger-${i}`}
+                >
+                  <span className={styles.question}>{item.question}</span>
+                  <span className={styles.icon} aria-hidden="true">
+                    <span className={styles.iconBar} />
+                    <span className={`${styles.iconBar} ${styles.iconBarV}`} />
+                  </span>
+                </button>
+                <div
+                  id={`faq-panel-${i}`}
+                  role="region"
+                  aria-labelledby={`faq-trigger-${i}`}
+                  aria-hidden={!isOpen}
+                  className={styles.panel}
+                >
+                  <div className={styles.panelInner}>
+                    <p className={styles.answer}>{item.answer}</p>
                   </div>
-                </li>
+                </div>
               </ScrollReveal>
             );
           })}

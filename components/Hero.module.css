@@ -73,6 +73,17 @@
   }
 }
 
+/* On mobile, pause the two infinite background drifts. They are purely
+   decorative (the gradients stay), but the continuous compositing they drive
+   competed with the hero image's first paint under throttled mobile and also
+   destabilised Speed Index. Desktop keeps the motion. */
+@media (max-width: 767px) {
+  .drift::before,
+  .drift::after {
+    animation: none;
+  }
+}
+
 /* ----------------------------------------------------------------------------
    Split layout
    - Mobile (<1024px): flex column, everything centered
@@ -386,6 +397,22 @@
     0 0 32px rgba(47, 107, 255, 0.12);
   overflow: hidden;
   isolation: isolate;
+}
+
+/* Mobile paint diet: the LCP hero image lives inside this card, and a live
+   backdrop-filter blur (sampling the animated drift background every frame)
+   was gating the image's paint by seconds under throttled mobile. Swap the
+   live glass for a near-solid panel + lighter shadow on phones only. Desktop
+   keeps the full glass blur untouched. */
+@media (max-width: 767px) {
+  .portraitCard {
+    background-color: rgba(13, 19, 38, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow:
+      var(--shadow-inner-hairline),
+      0 16px 40px rgba(0, 0, 0, 0.5);
+  }
 }
 
 @media (min-width: 768px) {
@@ -757,6 +784,17 @@
     border-color var(--duration-base) var(--ease-out-strong),
     transform var(--duration-base) var(--ease-out-strong),
     background-color var(--duration-base) var(--ease-out-strong);
+}
+
+/* Mobile: these info cards sit in the hero's initial viewport. Drop the live
+   blur (solid panel instead) so they don't add backdrop-filter compositing on
+   the above-the-fold paint path. Desktop keeps the glass. */
+@media (max-width: 767px) {
+  .infoCard {
+    background-color: rgba(13, 19, 38, 0.85);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @media (min-width: 1024px) {
