@@ -103,6 +103,15 @@ export interface VideoTestimonial {
   wistiaId?: string;
   /** Vimeo video ID (e.g. "1151505324"). Set this OR wistiaId. */
   vimeoId?: string;
+  /** Full Tella embed iframe src. Set this OR wistiaId/vimeoId. Tella locks
+   *  the embed to the brand domain, so playback only works on production —
+   *  and Tella exposes no fetchable portrait poster, so pair this with a
+   *  static `thumbnailSrc`. */
+  tellaEmbedUrl?: string;
+  /** Static thumbnail path under /public (e.g. "/testimonial-tella-1.webp").
+   *  Used as the card poster for providers without a fetchable still
+   *  (i.e. Tella). Ignored for Wistia/Vimeo (those fetch their own). */
+  thumbnailSrc?: string;
   /** When true, hide this video on tablet + desktop (>=640px). */
   mobileOnly?: boolean;
 }
@@ -656,11 +665,21 @@ export const clientConfig: ClientConfig = {
     videos: [
       { id: "testimonial-viren", vimeoId: "1151505324", mobileOnly: true },
       { id: "testimonial-1", wistiaId: "txhwzn9b7s" },
-      { id: "testimonial-2", wistiaId: "uce2vo91tv" },
+      {
+        id: "testimonial-2",
+        tellaEmbedUrl:
+          "https://www.tella.tv/video/vid_cmpoz2wm0007804jx8qq18k4x/embed?b=1&title=1&a=1&loop=0&t=0&muted=0&wt=1&o=1",
+        thumbnailSrc: "/testimonial-tella-1.webp",
+      },
       { id: "testimonial-3", wistiaId: "7sde1semev" },
       { id: "testimonial-4", wistiaId: "pqfqrzkpa1" },
       { id: "testimonial-5", wistiaId: "w84s07ardv" },
-      { id: "testimonial-6", wistiaId: "zjst8uyy88" },
+      {
+        id: "testimonial-6",
+        tellaEmbedUrl:
+          "https://www.tella.tv/video/vid_cmpoz5yke007204idgwyl6vbx/embed?b=1&title=1&a=1&loop=0&t=0&muted=0&wt=1&o=1",
+        thumbnailSrc: "/testimonial-tella-2.webp",
+      },
     ],
   },
 

@@ -119,7 +119,11 @@ export async function TestimonialsSection({ testimonials }: Props) {
     testimonials.videos.map(async (video) => {
       let thumbnail = "";
       let mp4Url: string | undefined;
-      if (video.wistiaId) {
+      if (video.tellaEmbedUrl) {
+        // Tella locks its embed to the brand domain and exposes no fetchable
+        // portrait poster, so we use the static thumbnail shipped in /public.
+        thumbnail = video.thumbnailSrc ?? "";
+      } else if (video.wistiaId) {
         const assets = await getWistiaAssets(video.wistiaId);
         thumbnail = assets.thumbnail;
         mp4Url = assets.mp4Url;
@@ -153,6 +157,7 @@ export async function TestimonialsSection({ testimonials }: Props) {
               <VideoTestimonial
                 wistiaId={video.wistiaId}
                 vimeoId={video.vimeoId}
+                tellaEmbedUrl={video.tellaEmbedUrl}
                 mp4Url={video.mp4Url}
                 thumbnail={video.thumbnail}
               />

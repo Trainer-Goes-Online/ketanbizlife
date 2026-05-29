@@ -149,9 +149,12 @@ export default function RootLayout({
           </Script>
         ) : null}
 
-        {/* Microsoft Clarity — host-gated client-side */}
+        {/* Microsoft Clarity — host-gated client-side. lazyOnload: Clarity is
+            session-recording only, so deferring its init to browser idle keeps
+            it off the critical path (less main-thread contention / fewer long
+            tasks during load). Does NOT touch Meta Pixel or GA4 above. */}
         {clarityProjectId ? (
-          <Script id="clarity-init" strategy="afterInteractive">
+          <Script id="clarity-init" strategy="lazyOnload">
             {`if (window.location.host.toLowerCase() === "${productionDomain}") {
               (function(c,l,a,r,i,t,y){
                 c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};

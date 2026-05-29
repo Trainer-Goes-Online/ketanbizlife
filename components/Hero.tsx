@@ -70,12 +70,12 @@ export function Hero({ hero, event, checkoutHref }: Props) {
                 card; the new artwork already carries the name/role lockup. */}
             <div className={styles.mobileImageFrame}>
               <Image
-                src="/ketan-hero-new.png"
+                src="/ketan-hero-new.webp"
                 alt="Ketan Vadariya — The Export Unstuck"
                 width={1456}
                 height={1092}
                 priority
-                sizes="(max-width: 767px) 100vw, 480px"
+                sizes="(max-width: 767px) calc(100vw - 74px), 480px"
                 className={styles.mobileImage}
               />
             </div>
