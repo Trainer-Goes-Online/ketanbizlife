@@ -16,14 +16,6 @@ interface Props {
   showRefundLine: boolean;
 }
 
-const mastheadItems = [
-  "Ketan BizLife",
-  "For Indian Manufacturers, Traders & Sourcing Agents Doing Goods Export",
-  "The Indian Export Insider Workshop",
-  "Live · Sunday 31st May 2026 · 10:45 AM IST",
-  "Hindi · Zoom · 3 Hours · ₹99 entry",
-];
-
 interface InfoCard {
   icon: IconName;
   label: string;
@@ -31,8 +23,19 @@ interface InfoCard {
 }
 
 export function Hero({ hero, event, checkoutHref }: Props) {
+  // Built inside the component so it picks up env-driven date/time on every
+  // render. (Previously this lived as a module-level const with the date
+  // hardcoded — meaning Vercel env changes never reached the marquee.)
+  const mastheadItems = [
+    "Ketan BizLife",
+    "For Indian Manufacturers, Traders & Sourcing Agents Doing Goods Export",
+    "The Indian Export Insider Workshop",
+    `Live · ${event.dateLabel} · ${event.timeLabel}`,
+    "Hindi · Zoom · 3 Hours · ₹99 entry",
+  ];
+
   const infoCards: InfoCard[] = [
-    { icon: "calendar", label: "Date", value: "Sunday, 31st May" },
+    { icon: "calendar", label: "Date", value: event.dateShortLabel },
     { icon: "clock", label: "Time", value: event.timeLabel },
     { icon: "video", label: "Venue", value: "Live on Zoom" },
     { icon: "user", label: "Host", value: "Ketan Vadariya" },

@@ -35,6 +35,15 @@ const WEBINAR_DATE_LABEL = str(
   process.env.NEXT_PUBLIC_WEBINAR_DATE_LABEL,
   "Sunday, 31st May 2026",
 );
+/**
+ * Short-form date (no year) used in the Hero info card and the Transformation
+ * outro where a tight chip-style date reads better than the full label.
+ * Update this in lockstep with WEBINAR_DATE_LABEL on every webinar rollover.
+ */
+const WEBINAR_DATE_SHORT_LABEL = str(
+  process.env.NEXT_PUBLIC_WEBINAR_DATE_SHORT_LABEL,
+  "Sunday, 31st May",
+);
 const WEBINAR_TIME_LABEL = str(
   process.env.NEXT_PUBLIC_WEBINAR_TIME_LABEL,
   "10:45 AM IST",
@@ -165,6 +174,8 @@ export interface ClientConfig {
 
   event: {
     dateLabel: string;
+    /** Short-form date (no year) — for tight UI surfaces. */
+    dateShortLabel: string;
     countdownTargetISO: string;
     timeLabel: string;
     timezone: string;
@@ -383,6 +394,7 @@ export const clientConfig: ClientConfig = {
 
   event: {
     dateLabel: WEBINAR_DATE_LABEL,
+    dateShortLabel: WEBINAR_DATE_SHORT_LABEL,
     countdownTargetISO: WEBINAR_COUNTDOWN_ISO,
     timeLabel: WEBINAR_TIME_LABEL,
     timezone: "Asia/Kolkata",
@@ -420,7 +432,7 @@ export const clientConfig: ClientConfig = {
       "1-Year Guarantee Gimmicks",
     ],
     promiseText:
-      "Sunday, 31st May 2026. 3 ghante live Zoom webinar. 2 proven buyer-finding systems that can help you get genuine international orders. Wahi system jo Mein 10+ saal se 2 export brands ke saath use kar raha hoon.",
+      `${WEBINAR_DATE_LABEL}. 3 ghante live Zoom webinar. 2 proven buyer-finding systems that can help you get genuine international orders. Wahi system jo Mein 10+ saal se 2 export brands ke saath use kar raha hoon.`,
     promiseFrameworkName: "",
     countdownLabel: "Webinar shuru hone mein",
     eventDetailsLine: `Date: ${WEBINAR_DATE_LABEL}   ·   Time: ${WEBINAR_TIME_LABEL}   ·   Venue: Live on Zoom   ·   Language: Hindi`,
@@ -495,7 +507,7 @@ export const clientConfig: ClientConfig = {
   agenda: {
     heading: "What This 3-Hour Webinar Covers",
     subheading:
-      "Sunday’s Live Webinar · 31st May 2026 · 10:45 AM IST · Zoom. Four content blocks across 3 hours. You leave with a system, not just notes.",
+      `Live Webinar · ${WEBINAR_DATE_LABEL} · ${WEBINAR_TIME_LABEL} · Zoom. Four content blocks across 3 hours. You leave with a system, not just notes.`,
     blocks: [
       {
         label: "BLOCK 1",
@@ -575,7 +587,7 @@ export const clientConfig: ClientConfig = {
       "…buyer ke “discount?” ya “credit?” objection ka counter-question approach jaanta hai.",
       "…follow-up ko system se chalata hai, mood se nahi. Country-specific timelines pata hain.",
     ],
-    outro: "Sunday, 31st May. ₹99. Live webinar.",
+    outro: `${WEBINAR_DATE_SHORT_LABEL}. ₹99. Live webinar.`,
     ctaText: "Book My Seat at ₹99",
   },
 
@@ -726,7 +738,7 @@ export const clientConfig: ClientConfig = {
 
   // -------- SECTION 13 — Final CTA + Anti-Qualifier --------
   finalCta: {
-    heading: "₹99. Sunday, 31st May 2026. 3 ghante. Ek decision.",
+    heading: `₹99. ${WEBINAR_DATE_LABEL}. 3 ghante. Ek decision.`,
     guaranteeLine:
       "100% Money-Back Guarantee. Webinar dekh ke bhi value nahi mili? ₹99 wapas.",
     antiQualifierHeading: "Don’t Register If…",
@@ -746,7 +758,7 @@ export const clientConfig: ClientConfig = {
     productTitle: "The Export Unstuck 1-Day Webinar",
     productByline: "By Ketan Bizlife",
     productMeta:
-      "Sunday, 31st May 2026 · 10:45 AM IST · Live on Zoom · Hindi",
+      `${WEBINAR_DATE_LABEL} · ${WEBINAR_TIME_LABEL} · Live on Zoom · Hindi`,
     bonusesHeading: "5 Free Bonuses Included With Your ₹99 Registration",
     bumpsHeading: "Smart Add-ons (Optional)",
     bumpsSubheading:

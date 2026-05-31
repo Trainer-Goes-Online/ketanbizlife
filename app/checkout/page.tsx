@@ -11,8 +11,7 @@ import styles from "./page.module.css";
 
 export const metadata: Metadata = {
   title: "Reserve Your ₹99 Seat — Ketan BizLife",
-  description:
-    "Complete your registration for the Indian Export Insider Workshop — live 3-hour webinar with Ketan, Sunday 31st May 2026 at 10:45 AM IST.",
+  description: `Complete your registration for the Indian Export Insider Workshop — live 3-hour webinar with Ketan, ${clientConfig.event.dateLabel} at ${clientConfig.event.timeLabel}.`,
   robots: {
     index: false,
     follow: false,

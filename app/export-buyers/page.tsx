@@ -21,8 +21,7 @@ import { readUtmFromObject, utmToQueryString } from "@/lib/utm";
 export const metadata: Metadata = {
   title:
     "For Indian Exporters Stuck in the Same Loop — ₹99 Live Sunday Webinar",
-  description:
-    "Buyer ko price diya. Buyer gayab ho gaya. Phir se. 8/10 Indian exporters fail — not because of documents, but because nobody taught them how to find real buyers. Sunday, 31st May 2026, 10:45 AM IST.",
+  description: `Buyer ko price diya. Buyer gayab ho gaya. Phir se. 8/10 Indian exporters fail — not because of documents, but because nobody taught them how to find real buyers. ${clientConfig.event.dateLabel}, ${clientConfig.event.timeLabel}.`,
 };
 
 interface PageProps {
