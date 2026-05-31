@@ -842,7 +842,14 @@ export const clientConfig: ClientConfig = {
   },
 
   community: {
-    whatsappGroupUrl: "https://chat.whatsapp.com/LjNwhbgRIzfJaJhMFfnS96",
+    // Rotated every ~2 weeks. Set NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL in Vercel
+    // to the new invite link to roll without a code change. The hardcoded
+    // fallback is the dev-time default and the last-known-good production
+    // value if the env var is ever unset.
+    whatsappGroupUrl: str(
+      process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL,
+      "https://chat.whatsapp.com/LjNwhbgRIzfJaJhMFfnS96",
+    ),
     fallbackMessage:
       "WhatsApp group invite + Zoom link will reach you 30 minutes before the webinar.",
   },
