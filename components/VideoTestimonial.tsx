@@ -91,7 +91,7 @@ export function VideoTestimonial({
       controls
       playsInline
       preload="metadata"
-      poster={thumbnail}
+      poster={thumbnail || undefined}
       className={styles.inlineIframe}
     />
   ) : vimeoId ? (
@@ -152,13 +152,29 @@ export function VideoTestimonial({
         onClick={handlePlay}
         aria-label="Play testimonial video"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={thumbnail}
-          alt=""
-          loading="lazy"
-          className={styles.thumb}
-        />
+        {thumbnail ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={thumbnail}
+            alt=""
+            loading="lazy"
+            className={styles.thumb}
+          />
+        ) : mp4Url ? (
+          // Direct-MP4 cards have no provider still — show the video's own
+          // ~0.1s frame as the poster (the #t=0.1 media fragment seeks there).
+          // Muted + metadata-only so it just paints the frame, never plays.
+          <video
+            src={`${mp4Url}#t=0.1`}
+            muted
+            playsInline
+            preload="metadata"
+            aria-hidden="true"
+            tabIndex={-1}
+            style={{ pointerEvents: "none" }}
+            className={styles.thumb}
+          />
+        ) : null}
         <span className={styles.playBtn} aria-hidden="true">
           <PlayIcon />
         </span>
