@@ -112,6 +112,10 @@ export interface VideoTestimonial {
   wistiaId?: string;
   /** Vimeo video ID (e.g. "1151505324"). Set this OR wistiaId. */
   vimeoId?: string;
+  /** Direct MP4 URL (e.g. a DigitalOcean Spaces CDN link). Set this OR
+   *  wistiaId/vimeoId. The card poster is the video's ~0.1s frame (shown via a
+   *  muted <video> element) and playback uses a native HTML5 <video>. */
+  mp4Src?: string;
   /** When true, hide this video on tablet + desktop (>=640px). */
   mobileOnly?: boolean;
 }
@@ -668,11 +672,19 @@ export const clientConfig: ClientConfig = {
     videos: [
       { id: "testimonial-viren", vimeoId: "1151505324", mobileOnly: true },
       { id: "testimonial-1", wistiaId: "txhwzn9b7s" },
-      { id: "testimonial-2", vimeoId: "1196620631" },
+      {
+        id: "testimonial-2",
+        mp4Src:
+          "https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Ketan/review_yashvardhan_rajpurohit%20(540p).mp4",
+      },
       { id: "testimonial-3", wistiaId: "7sde1semev" },
       { id: "testimonial-4", wistiaId: "pqfqrzkpa1" },
       { id: "testimonial-5", wistiaId: "w84s07ardv" },
-      { id: "testimonial-6", vimeoId: "1196620632" },
+      {
+        id: "testimonial-6",
+        mp4Src:
+          "https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Ketan/Review_Manu_Bhutani.mp4",
+      },
     ],
   },
 

@@ -128,7 +128,11 @@ export async function TestimonialsSection({ testimonials }: Props) {
     testimonials.videos.map(async (video) => {
       let thumbnail = "";
       let mp4Url: string | undefined;
-      if (video.wistiaId) {
+      if (video.mp4Src) {
+        // Direct MP4 (CDN). No provider still — the card poster is the video's
+        // own ~0.1s frame, rendered by VideoTestimonial when thumbnail is empty.
+        mp4Url = video.mp4Src;
+      } else if (video.wistiaId) {
         const assets = await getWistiaAssets(video.wistiaId);
         thumbnail = assets.thumbnail;
         mp4Url = assets.mp4Url;
