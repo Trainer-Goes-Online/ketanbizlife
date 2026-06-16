@@ -414,16 +414,15 @@ export const clientConfig: ClientConfig = {
     preHeaderFlag:
       "For Indian Manufacturers, Traders & Sourcing Agents Doing Goods Export",
     hindiBanner: "Export शुरू किया… पर result नहीं आ रहा?",
-    headlineLead: "For Indian Exporters Stuck in the Same Loop:",
+    headlineLead:
+      "For Indian Exporters Who Are Still Struggling to Find Real Buyers",
     headlinePunchLines: [
-      "Buyer ko price diya.",
-      "Buyer gayab ho gaya.",
-      "Phir se.",
+      "8 Out of 10 Exporters Fail.",
+      "Not Because of Documents, But Because They Don't Know How to Find Real Buyers?",
     ],
-    statHeadline: "8 Out of 10 Indian Exporters Fail.",
+    statHeadline: "Join India's Most Practical Export Webinar.",
     statLines: [
-      "Not because of documents.",
-      "Because nobody taught them how to find real buyers.",
+      "Learn 2 proven buyer-finding systems that can help you get genuine international orders in just 1 day.",
     ],
     withoutStack:
       "Without Embassy contacts. Without Google searches. Without B2B portal traps. Without Port Data scams. Without 1-year guarantee gimmicks.",

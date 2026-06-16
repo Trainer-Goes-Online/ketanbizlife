@@ -249,6 +249,14 @@
   max-width: 480px;
 }
 
+/* Hide the supporting stat line on mobile/tablet — it shows only in the
+   desktop grid layout (the statHeadline stays on all viewports). */
+@media (max-width: 1023px) {
+  .statLine {
+    display: none;
+  }
+}
+
 /* ----------------------------------------------------------------------------
    Countdown row — centered on mobile, left-aligned on desktop
    ---------------------------------------------------------------------------- */

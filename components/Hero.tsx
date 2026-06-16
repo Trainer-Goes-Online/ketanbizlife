@@ -66,6 +66,18 @@ export function Hero({ hero, event, checkoutHref }: Props) {
             </h1>
           </div>
 
+          {/* Stat block — on mobile sits directly under the headline, ABOVE
+              Ketan's portrait. On desktop the grid-template-areas place it
+              independently of this DOM order, so desktop layout is unchanged. */}
+          <div className={styles.stat}>
+            <p className={styles.statHeadline}>{hero.statHeadline}</p>
+            {hero.statLines.map((line, i) => (
+              <p key={i} className={styles.statLine}>
+                {line}
+              </p>
+            ))}
+          </div>
+
           {/* Portrait card — solo on the right column at desktop, between
               headline and info grid on mobile. */}
           <figure className={styles.portraitCard}>
@@ -148,8 +160,8 @@ export function Hero({ hero, event, checkoutHref }: Props) {
             </div>
           </figure>
 
-          {/* Info grid — mobile: immediately after portrait. Desktop: bottom of
-              left column under the CTA. */}
+          {/* Info grid — mobile: after the portrait. Desktop: bottom of the
+              left column (placed via grid-area). */}
           <div className={styles.infoGrid}>
             {infoCards.map((card) => (
               <div key={card.label} className={styles.infoCard}>
@@ -159,17 +171,6 @@ export function Hero({ hero, event, checkoutHref }: Props) {
                 <span className={styles.infoLabel}>{card.label}</span>
                 <span className={styles.infoValue}>{card.value}</span>
               </div>
-            ))}
-          </div>
-
-          {/* Stat block — sits between portrait and countdown on mobile flow.
-              On desktop grid it occupies its own row in the left column. */}
-          <div className={styles.stat}>
-            <p className={styles.statHeadline}>{hero.statHeadline}</p>
-            {hero.statLines.map((line, i) => (
-              <p key={i} className={styles.statLine}>
-                {line}
-              </p>
             ))}
           </div>
 
