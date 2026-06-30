@@ -244,6 +244,12 @@ export function CheckoutForm({ config, mode }: Props) {
     const utm = readUtmFromStorage(config.funnel.sessionStorageKey);
     const fbc = readCookie("_fbc");
     const fbp = readCookie("_fbp");
+    // Meta in-app browsers (Instagram WebView, Facebook IAB) often fail to
+    // persist the `_fbc` cookie the pixel tries to write, so we ALSO forward
+    // the raw fbclid the URL gave us on landing (captured by UtmTracker).
+    // The server reconstructs fbc from fbclid when the cookie is empty —
+    // byte-identical to what the pixel would have produced.
+    const fbclid = utm.fbclid;
 
     try {
       const orderRes = await fetch("/api/cashfree/create-order", {
@@ -261,6 +267,7 @@ export function CheckoutForm({ config, mode }: Props) {
           // these into Cashfree order_tags inside create-order.
           fbc,
           fbp,
+          fbclid,
           userAgent:
             typeof navigator !== "undefined" ? navigator.userAgent : undefined,
           eventSourceUrl:
@@ -372,20 +379,26 @@ export function CheckoutForm({ config, mode }: Props) {
           country: customer.countryCode,
         });
 
+        // ─────────────────────────────────────────────────────────────────
+        // TEMPORARILY DISABLED for new-pixel/CAPI dataset test (only Purchase
+        // server-side + PageView browser-side should fire). Uncomment to
+        // revert to the dual-fire pattern below when switching back to the
+        // original pixel/CAPI dataset.
+        // ─────────────────────────────────────────────────────────────────
         // Browser-side standard `Purchase` paired with the server CAPI
         // Purchase via matching eventID (= cf_payment_id). Meta dedupes
         // them within 48h → counted as one Purchase. Without this pair,
         // Meta's Auto Event Detection synthesises uncontrolled Purchase
         // events with no eventID and inflates counts. MAM (above) fires
         // first so this event inherits hashed identity for 9+/10 EMQ.
-        if (verified.paymentId) {
-          trackPurchasePixel({
-            paymentId: verified.paymentId,
-            value: grandTotal,
-            currency: config.brand.currency ?? "INR",
-            contentName: `${config.brand.name} Webinar`,
-          });
-        }
+        // if (verified.paymentId) {
+        //   trackPurchasePixel({
+        //     paymentId: verified.paymentId,
+        //     value: grandTotal,
+        //     currency: config.brand.currency ?? "INR",
+        //     contentName: `${config.brand.name} Webinar`,
+        //   });
+        // }
       }
 
       const utmQs = utmToQueryString(utm);

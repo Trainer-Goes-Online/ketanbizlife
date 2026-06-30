@@ -50,6 +50,7 @@ export async function POST(
     utm,
     fbc,
     fbp,
+    fbclid,
     userAgent,
   } = body;
   // `eventSourceUrl` is intentionally not destructured: we no longer
@@ -121,7 +122,23 @@ export async function POST(
   // webhook already defaults to "IN" when the tag is missing.
   const clientIp = extractClientIp(request);
   const ua = (userAgent ?? "").slice(0, 180);
-  const ctx = packBrowserContext({ fbc, fbp, ip: clientIp });
+  // fbc recovery for Meta in-app browsers. When the user clicks a Meta ad
+  // and lands inside Instagram WebView / Facebook IAB, the Meta Pixel
+  // frequently fails to write the `_fbc` cookie (IAB cookie sandboxing) so
+  // the browser submits `fbc=""`. The URL still carries `?fbclid=…` though
+  // (Meta sets that server-side before the browser even gets the page), and
+  // UtmTracker persists it in sessionStorage. We rebuild fbc in the exact
+  // format the pixel would have used: `fb.{subdomainIndex=1}.{ms_ts}.{fbclid}`.
+  // Meta accepts and matches a server-constructed fbc identically to a
+  // pixel-written one. Without this, we lose attribution for ~all paid
+  // mobile-ad traffic.
+  const resolvedFbc =
+    (fbc && fbc.length > 0)
+      ? fbc
+      : (fbclid && fbclid.length > 0)
+        ? `fb.1.${Date.now()}.${fbclid}`
+        : "";
+  const ctx = packBrowserContext({ fbc: resolvedFbc, fbp, ip: clientIp });
   // 9 tags total. One slot of headroom inside Cashfree's 10-key limit.
   // Adding any new tag requires dropping another or Cashfree returns 400.
   const orderTags: CashfreeOrderTags = {

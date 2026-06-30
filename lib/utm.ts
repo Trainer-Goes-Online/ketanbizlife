@@ -6,6 +6,11 @@ const UTM_KEYS = [
   "utm_campaign",
   "utm_content",
   "utm_term",
+  // fbclid rides on the same capture-and-persist mechanism so we can
+  // reconstruct `_fbc` server-side when the Meta Pixel doesn't set the cookie.
+  // It is NOT sent to Pabbly as utm_fbclid — it's pulled out at checkout
+  // submit time and forwarded as a top-level `fbclid` field on its own.
+  "fbclid",
 ] as const satisfies readonly (keyof UtmPayload)[];
 
 /**

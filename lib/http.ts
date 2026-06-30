@@ -8,19 +8,44 @@
  */
 
 /**
- * Extracts the originating client IP from the standard Vercel / proxy
- * headers. Falls back to an empty string when neither header is present
- * (callers should treat empty as "unknown" and skip the field rather
- * than passing it to downstream APIs).
+ * Extracts the originating client IP from the standard proxy headers.
+ * Returns "" only when EVERY known header is unset (in which case the
+ * caller should skip the field rather than send blank to Meta CAPI).
  *
- * Vercel injects `x-forwarded-for` as a comma-separated list with the
- * client's IP first, then each proxy hop. We take the first entry.
+ * We try multiple headers because empirically (500+ paid leads) the
+ * Pabbly `client_ip_address` column had been blank for in-app-browser
+ * traffic. The original code only checked `x-forwarded-for` then
+ * `x-real-ip`; we now also check Vercel's own forwarded header and the
+ * Cloudflare connecting IP as additional safety nets. A one-line log
+ * names the winning header so future debugging is trivial — keep this
+ * log until we've confirmed IP populates on real production purchases.
+ *
+ * Header order (most-trusted first):
+ *   1. x-forwarded-for          (standard; Vercel sets it)
+ *   2. x-vercel-forwarded-for   (Vercel-specific mirror)
+ *   3. x-real-ip                (older proxy convention)
+ *   4. cf-connecting-ip         (defensive — repo doesn't sit behind CF today)
  */
 export function extractClientIp(request: Request): string {
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
+  const candidates: Array<[string, string | null]> = [
+    ["x-forwarded-for", request.headers.get("x-forwarded-for")],
+    ["x-vercel-forwarded-for", request.headers.get("x-vercel-forwarded-for")],
+    ["x-real-ip", request.headers.get("x-real-ip")],
+    ["cf-connecting-ip", request.headers.get("cf-connecting-ip")],
+  ];
+
+  for (const [name, raw] of candidates) {
+    if (!raw) continue;
+    // x-forwarded-for headers can be a comma-separated chain; client IP is first.
+    const first = raw.split(",")[0]?.trim();
+    if (first) {
+      console.log(`[http] extractClientIp: ${name}=${first}`);
+      return first;
+    }
   }
-  return request.headers.get("x-real-ip") ?? "";
+
+  console.warn(
+    "[http] extractClientIp: no IP found in any candidate header — sending blank",
+  );
+  return "";
 }

@@ -120,7 +120,14 @@ export async function fireMetaCapiPurchase(args: {
   const payload = {
     data: [
       { event_name: "Purchase", ...sharedBody },
-      { event_name: args.eventName, ...sharedBody },
+      // ─────────────────────────────────────────────────────────────────
+      // TEMPORARILY DISABLED for new-pixel/CAPI dataset test (we want ONLY
+      // server-side Purchase + browser-side PageView on the new dataset).
+      // Uncomment the line below to revert to dual-fire (Purchase + the
+      // custom `sales` event named via clientConfig.capi.eventName) when
+      // switching back to the original pixel/CAPI dataset.
+      // ─────────────────────────────────────────────────────────────────
+      // { event_name: args.eventName, ...sharedBody },
     ],
   };
 

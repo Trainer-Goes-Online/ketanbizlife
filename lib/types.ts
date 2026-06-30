@@ -19,6 +19,10 @@ export interface UtmPayload {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
+  /** Raw Facebook click ID from `?fbclid=…` on the landing URL. Persisted
+   *  alongside UTMs so we can reconstruct `_fbc` server-side when the Meta
+   *  Pixel fails to set the cookie (typical for in-app browser users). */
+  fbclid?: string;
 }
 
 export type CashfreeMode = "sandbox" | "production";
@@ -34,6 +38,10 @@ export interface CreateOrderRequest {
   fbc?: string;
   /** Facebook browser-id cookie (snapshotted into order_tags for the webhook-side CAPI fire) */
   fbp?: string;
+  /** Raw fbclid recovered from the landing URL via UTM persistence. Used by
+   *  create-order to reconstruct `_fbc` when the Meta Pixel didn't set the
+   *  cookie (the common case for Instagram/Facebook in-app browsers). */
+  fbclid?: string;
   /** navigator.userAgent at submit time (snapshotted into order_tags for the webhook-side CAPI fire) */
   userAgent?: string;
   /** window.location.href at submit time (snapshotted into order_tags for the webhook-side CAPI fire) */
