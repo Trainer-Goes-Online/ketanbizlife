@@ -232,7 +232,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const isTest = !(cashfreeMode === "production" && isRealCharge);
 
   let capiAttempted = false;
-  const capiOutcome: "ok" | "err" | "timeout" | "skipped" = "skipped";
+  let capiOutcome: "ok" | "err" | "timeout" | "skipped" = "skipped";
   let capiSkipReason = "";
 
   if (!capiAllowed) {
@@ -247,33 +247,20 @@ export async function POST(request: Request): Promise<NextResponse> {
       `[cashfree-webhook] CAPI skipped — order=${orderId} reason=${capiSkipReason} mode=${cashfreeMode} amount=${grandTotal}`,
     );
   } else {
-    // ─────────────────────────────────────────────────────────────────────
-    // TEMPORARILY DISABLED for new-pixel/CAPI dataset test — server-side
-    // Purchase is OFF; only browser-side PageView fires for this dataset.
-    // Pabbly fulfillment still fires below (this only kills the Meta CAPI
-    // round-trip). To revert: delete the capiSkipReason line and uncomment
-    // the fireMetaCapiPurchase block. Mirror this with the dual revert in
-    // lib/capi.ts (sales custom event) and components/CheckoutForm.tsx
-    // (browser-side Purchase pixel).
-    // ─────────────────────────────────────────────────────────────────────
-    capiSkipReason = "manually_disabled_for_dataset_test";
-    console.log(
-      `[cashfree-webhook] CAPI disabled (dataset test) — order=${orderId} amount=${grandTotal}`,
-    );
-    // capiAttempted = true;
-    // capiOutcome = await fireMetaCapiPurchase({
-    //   customer,
-    //   eventName: clientConfig.capi.eventName,
-    //   value: grandTotal,
-    //   currency,
-    //   paymentId,
-    //   eventSourceUrl,
-    //   kind: clientConfig.capi.kind,
-    //   clientIp: ctx.ip ?? "",
-    //   clientUserAgent: userAgentSnapshot,
-    //   fbc: ctx.fbc,
-    //   fbp: ctx.fbp,
-    // });
+    capiAttempted = true;
+    capiOutcome = await fireMetaCapiPurchase({
+      customer,
+      eventName: clientConfig.capi.eventName,
+      value: grandTotal,
+      currency,
+      paymentId,
+      eventSourceUrl,
+      kind: clientConfig.capi.kind,
+      clientIp: ctx.ip ?? "",
+      clientUserAgent: userAgentSnapshot,
+      fbc: ctx.fbc,
+      fbp: ctx.fbp,
+    });
   }
 
   const cashfreeEventReceivedAt = new Date().toISOString();
